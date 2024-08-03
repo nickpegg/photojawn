@@ -11,8 +11,15 @@ logger = logging.getLogger("photoalbum.cli")
 def main() -> None:
     args = parse_args()
     setup_logging(args.logging)
-    # TODO: load config from file
-    config = Config()
+
+    # Load config from file if it exists
+    conf_path = Path(args.album_path) / Path(args.config)
+    if conf_path.exists():
+        logger.debug(f"Reading config from {conf_path}")
+        config = Config.from_yaml(conf_path.read_bytes())
+    else:
+        logger.warning(f"No config file found at {conf_path}. Using defaults")
+        config = Config()
 
     # Call the subcommand function
     match args.action:
@@ -31,8 +38,8 @@ def cmd_init(args: Namespace, config: Config) -> None:
 
 
 def cmd_generate(args: Namespace, config: Config) -> None:
-    logger.debug(f"Generating in {args.path}")
-    generate(config, Path(args.path))
+    logger.debug(f"Generating in {args.album_path}")
+    generate(config, Path(args.album_path))
 
 
 def cmd_clean(args: Namespace, config: Config) -> None:
@@ -58,6 +65,12 @@ def parse_args() -> Namespace:
         choices=[level.lower() for level in logging.getLevelNamesMapping().keys()],
         help="Log level",
     )
+    parser.add_argument(
+        "--album-path",
+        "-p",
+        default=".",
+        help="Path to the main photos directory",
+    )
 
     subcommands = parser.add_subparsers(title="subcommands")
 
@@ -67,12 +80,6 @@ def parse_args() -> Namespace:
         help="Generate the HTML photo album",
     )
     generate_cmd.set_defaults(action="generate")
-    generate_cmd.add_argument(
-        "path",
-        nargs="?",
-        default=".",
-        help="Path to dir with photos in it",
-    )
 
     # Clean subcommand
     clean_cmd = subcommands.add_parser(

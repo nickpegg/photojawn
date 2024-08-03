@@ -34,7 +34,7 @@ def maybe_create_skeleton(config: Config, album_path: Path) -> tuple[bool, list[
     skel_files = []
 
     skel_dir = Path(__file__).parent / "skel"
-    logging.debug(f"Skeleton dir: {skel_dir}")
+    logger.debug(f"Skeleton dir: {skel_dir}")
 
     for parent_path, dirnames, filenames in skel_dir.walk():
         for filename in filenames:
