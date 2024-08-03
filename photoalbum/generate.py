@@ -13,44 +13,8 @@ def generate(config: Config, album_path: Path) -> None:
     """
     Main generation function
     """
-    skel_files_created, skel_files = maybe_create_skeleton(config, album_path)
     generate_thumbnails(config, album_path)
     # generate_html(config, album_path)
-
-    if skel_files_created:
-        print(
-            "Some basic files have been created for your album. Edit them as you need:"
-        )
-        for p in skel_files:
-            print(f" - {p}")
-
-
-def maybe_create_skeleton(config: Config, album_path: Path) -> tuple[bool, list[Path]]:
-    """
-    Create basic config, template, and static files if they don't already exist in the
-    repo
-    """
-    files_created = False
-    skel_files = []
-
-    skel_dir = Path(__file__).parent / "skel"
-    logger.debug(f"Skeleton dir: {skel_dir}")
-
-    for parent_path, dirnames, filenames in skel_dir.walk():
-        for filename in filenames:
-            skel_file_path = parent_path / filename
-            rel_path = skel_file_path.relative_to(skel_dir)
-            album_file_path = album_path / rel_path
-
-            skel_files.append(album_file_path)
-
-            if not album_file_path.exists():
-                album_file_path.parent.mkdir(exist_ok=True)
-                album_file_path.write_bytes(skel_file_path.read_bytes())
-                logger.debug(f"Created skeleton file {album_file_path}")
-                files_created = True
-
-    return files_created, skel_files
 
 
 def generate_thumbnails(config: Config, path: Path) -> None:
