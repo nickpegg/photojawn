@@ -11,6 +11,7 @@ license = "TODO"
 photoalbum = 'photoalbum.cli:main'
 
 [tool.poetry.dependencies]
+# TODO: make sure we support >=3.10 via tests
 python = "^3.12"
 jinja2 = "^3.1.4"
 pillow = "^10.4.0"

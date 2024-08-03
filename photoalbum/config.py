@@ -1,7 +1,6 @@
-from dataclasses import dataclass, field
-from typing import Iterator
+from dataclasses import dataclass
 
-DEFAULT_CONFIG_PATH = "photoalbum.config.json"
+DEFAULT_CONFIG_PATH = "photoalbum.conf.yml"
 
 
 @dataclass
