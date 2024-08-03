@@ -13,58 +13,60 @@ def generate(config: Config, album_path: Path) -> None:
     """
     Main generation function
     """
-    photos = find_photos(album_path)
-    generate_thumbnails(config, photos)
+    images = find_images(album_path)
+    generate_thumbnails(config, images)
     generate_html(config, album_path)
 
 
-def find_photos(path: Path) -> list[Path]:
-    """ """
-    photos = []
+def find_images(path: Path) -> list[Path]:
+    """
+    Returns paths of all images in the given path
+    """
+    images = []
     for parent_path, dirnames, filenames in path.walk():
         if parent_path.name == "slides":
             continue
 
         for filename in filenames:
             file_path = parent_path / filename
-            if is_photo(file_path):
-                photos.append(file_path)
+            if is_image(file_path):
+                images.append(file_path)
 
-    return photos
+    return images
 
 
-def is_photo(photo_path: Path) -> bool:
+def is_image(path: Path) -> bool:
     """
-    Returns True if PIL thinks the file is a photo
+    Returns True if PIL thinks the file is an image
     """
     try:
-        Image.open(photo_path)
+        Image.open(path)
         return True
     except UnidentifiedImageError:
         return False
 
 
-def generate_thumbnails(config: Config, photos: list[Path]) -> None:
+def generate_thumbnails(config: Config, images: list[Path]) -> None:
     """
     Find all of the images and generate thumbnails and on-screen versions
     """
-    for photo_path in track(photos, description="Making thumbnails..."):
-        orig_img = Image.open(photo_path)
+    for image_path in track(images, description="Making thumbnails..."):
+        orig_img = Image.open(image_path)
 
-        slides_path = photo_path.parent / "slides"
+        slides_path = image_path.parent / "slides"
         slides_path.mkdir(exist_ok=True)
 
         thumb_img = orig_img.copy()
         thumb_img.thumbnail(config.thumbnail_size)
-        thumb_filename = photo_path.stem + ".thumb" + photo_path.suffix
+        thumb_filename = image_path.stem + ".thumb" + image_path.suffix
         thumb_img.save(slides_path / thumb_filename)
-        logger.info(f"Generated thumbnail size {photo_path} -> {thumb_filename}")
+        logger.info(f"Generated thumbnail size {image_path} -> {thumb_filename}")
 
         screen_img = orig_img.copy()
         screen_img.thumbnail(config.view_size)
-        screen_filename = photo_path.stem + ".screen" + photo_path.suffix
+        screen_filename = image_path.stem + ".screen" + image_path.suffix
         screen_img.save(slides_path / screen_filename)
-        logger.info(f"Generated screen size {photo_path} -> {screen_filename}")
+        logger.info(f"Generated screen size {image_path} -> {screen_filename}")
 
 
 def generate_html(config: Config, path: Path) -> None:
