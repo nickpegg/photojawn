@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 from PIL import Image, UnidentifiedImageError
-from rich.progress import track
+from rich.progress import track, Progress
 
 from photoalbum.config import Config
 
@@ -15,7 +15,7 @@ def generate(config: Config, album_path: Path) -> None:
     """
     images = find_images(album_path)
     generate_thumbnails(config, images)
-    generate_html(config, album_path)
+    generate_html(config, album_path, images)
 
 
 def find_images(path: Path) -> list[Path]:
@@ -60,16 +60,34 @@ def generate_thumbnails(config: Config, images: list[Path]) -> None:
         thumb_img.thumbnail(config.thumbnail_size)
         thumb_filename = image_path.stem + ".thumb" + image_path.suffix
         thumb_img.save(slides_path / thumb_filename)
-        logger.info(f"Generated thumbnail size {image_path} -> {thumb_filename}")
+        logger.info(f"Generated thumbnail size \"{image_path}\" -> \"{thumb_filename}\"")
 
         screen_img = orig_img.copy()
         screen_img.thumbnail(config.view_size)
         screen_filename = image_path.stem + ".screen" + image_path.suffix
         screen_img.save(slides_path / screen_filename)
-        logger.info(f"Generated screen size {image_path} -> {screen_filename}")
+        logger.info(f"Generated screen size \"{image_path}\" -> \"{screen_filename}\"")
 
 
-def generate_html(config: Config, path: Path) -> None:
+def generate_html(config: Config, root_path: Path, images: list[Path]) -> None:
     """
     Recursively generate HTML files for this directory and all children
     """
+
+    # Find all the album dirs that either have photos, or have child album dirs
+    # The paths in this set are all relative to the root_path
+    album_paths = {Path('.')}
+    for image_path in images:
+        rel_path = image_path.relative_to(root_path)
+        for parent in rel_path.parents:
+            album_paths.add(parent)
+
+    # Generate album pages for all album dirs
+    for album_path in track(album_paths, description="Generating album HTML..."):
+        html_path = album_path / "index.html"
+        logger.debug(html_path)
+
+    # Generate photo pages for all photos
+    for image_path in track(images, description="Generating photo HTML..."):
+        html_path = image_path.parent / "slides" / image_path.with_suffix(".html").name
+        logger.debug(html_path)
