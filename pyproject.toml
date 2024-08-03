@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "photoalbum"
+version = "0.1.0"
+description = "A simple photo album static site generator"
+authors = ["Nick Pegg <nick@nickpegg.com>"]
+repository = "https://github.com/nickpegg/photoalbum"
+readme = "README.md"
+license = "TODO"
+
+[tool.poetry.scripts]
+photoalbum = 'photoalbum.cli:main'
+
+[tool.poetry.dependencies]
+python = "^3.12"
+jinja2 = "^3.1.4"
+pillow = "^10.4.0"
+rich = "^13.7.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "*"
+ruff = "*"
+mypy = "*"
+pytest-testmon = "*"
+
+
+[tool.mypy]
+strict = true
+
+# Allow untyped decorators. This is mostly for @pytest.fixture
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+# Various packages which don't have stubs available
+module = [
+]
+ignore_missing_imports = true
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

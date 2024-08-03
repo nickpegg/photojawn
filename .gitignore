@@ -1,0 +1,6 @@
+# Python stuff
+__pycache__
+
+# Project specific files
+test_album
+DESIGN.md
