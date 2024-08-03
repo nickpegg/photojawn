@@ -4,6 +4,7 @@ from pathlib import Path
 
 from photoalbum.config import DEFAULT_CONFIG_PATH, Config
 from photoalbum.generate import generate
+from rich.logging import RichHandler
 
 logger = logging.getLogger("photoalbum.cli")
 
@@ -91,10 +92,17 @@ def parse_args() -> Namespace:
     return parser.parse_args()
 
 
-def setup_logging(level: str) -> None:
+def setup_logging(level_str: str) -> None:
     levels = logging.getLevelNamesMapping()
-    # TODO: Set up a better formatter with date/time and stuff
-    logging.basicConfig(level=levels[level.upper()])
+    level = levels[level_str.upper()]
+    logging.basicConfig(
+        level=level,
+        handlers=[RichHandler(rich_tracebacks=True)],
+    )
+    # Override PIL logging because debug is really noisy
+    if level <= logging.DEBUG:
+        logging.getLogger("PIL").setLevel(logging.INFO)
+
 
 
 if __name__ == "__main__":
