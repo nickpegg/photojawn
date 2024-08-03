@@ -2,9 +2,10 @@ import logging
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
+from rich.logging import RichHandler
+
 from photoalbum.config import DEFAULT_CONFIG_PATH, Config
 from photoalbum.generate import generate
-from rich.logging import RichHandler
 
 logger = logging.getLogger("photoalbum.cli")
 
@@ -18,12 +19,17 @@ def main() -> None:
     if conf_path.exists():
         logger.debug(f"Reading config from {conf_path}")
         config = Config.from_yaml(conf_path.read_bytes())
-    else:
-        logger.warning(f"No config file found at {conf_path}. Using defaults")
-        config = Config()
+    elif args.action != "init":
+        logger.error(
+            f"No config file found at {conf_path}. If this is a new photo directory, "
+            "please run `photoalbum init` in there first."
+        )
+        return
 
     # Call the subcommand function
     match args.action:
+        case "init":
+            cmd_init(args)
         case "generate":
             cmd_generate(args, config)
         case "clean":
@@ -32,10 +38,39 @@ def main() -> None:
 
 ########################################
 # Command functions
-def cmd_init(args: Namespace, config: Config) -> None:
+def cmd_init(args: Namespace) -> None:
     """
     Generate a basic config and template files
     """
+    album_path = Path(args.album_path)
+    config_path = album_path / args.config
+    if config_path.exists():
+        logger.warning(
+            f"Looks like {album_path} is already set up. If you want to start over and "
+            f"overwrite any of your customizations, remove {config_path}"
+        )
+        return
+
+    skel_dir = Path(__file__).parent / "skel"
+    logger.debug(f"Skeleton dir: {skel_dir}")
+
+    skel_files = []
+    for parent_path, dirnames, filenames in skel_dir.walk():
+        for filename in filenames:
+            skel_file_path = parent_path / filename
+            rel_path = skel_file_path.relative_to(skel_dir)
+            album_file_path = album_path / rel_path
+
+            skel_files.append(album_file_path)
+
+            if not album_file_path.exists():
+                album_file_path.parent.mkdir(exist_ok=True)
+                album_file_path.write_bytes(skel_file_path.read_bytes())
+                logger.debug(f"Created skeleton file {album_file_path}")
+
+    print("Some basic files have been created for your album. Edit them as you need:")
+    for p in skel_files:
+        print(f" - {p}")
 
 
 def cmd_generate(args: Namespace, config: Config) -> None:
@@ -66,14 +101,20 @@ def parse_args() -> Namespace:
         choices=[level.lower() for level in logging.getLevelNamesMapping().keys()],
         help="Log level",
     )
-    parser.add_argument(
-        "--album-path",
-        "-p",
+
+    subcommands = parser.add_subparsers(title="subcommands")
+
+    init_cmd = subcommands.add_parser(
+        "init",
+        help="Initialize an photo directory",
+    )
+    init_cmd.set_defaults(action="init")
+    init_cmd.add_argument(
+        "album_path",
+        nargs="?",
         default=".",
         help="Path to the main photos directory",
     )
-
-    subcommands = parser.add_subparsers(title="subcommands")
 
     # Generate subcommand
     generate_cmd = subcommands.add_parser(
@@ -81,6 +122,12 @@ def parse_args() -> Namespace:
         help="Generate the HTML photo album",
     )
     generate_cmd.set_defaults(action="generate")
+    generate_cmd.add_argument(
+        "album_path",
+        nargs="?",
+        default=".",
+        help="Path to the main photos directory",
+    )
 
     # Clean subcommand
     clean_cmd = subcommands.add_parser(
@@ -88,6 +135,12 @@ def parse_args() -> Namespace:
         help="Remove all generated content from the photo album directory",
     )
     clean_cmd.set_defaults(action="clean")
+    clean_cmd.add_argument(
+        "album_path",
+        nargs="?",
+        default=".",
+        help="Path to the main photos directory",
+    )
 
     return parser.parse_args()
 
@@ -97,12 +150,12 @@ def setup_logging(level_str: str) -> None:
     level = levels[level_str.upper()]
     logging.basicConfig(
         level=level,
+        format="[%(name)s] %(message)s",
         handlers=[RichHandler(rich_tracebacks=True)],
     )
     # Override PIL logging because debug is really noisy
     if level <= logging.DEBUG:
         logging.getLogger("PIL").setLevel(logging.INFO)
-
 
 
 if __name__ == "__main__":

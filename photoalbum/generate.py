@@ -82,13 +82,17 @@ def generate_thumbnails(config: Config, path: Path) -> None:
         thumb_img.thumbnail(config.thumbnail_size)
         thumb_filename = file_path.stem + ".thumb" + file_path.suffix
         thumb_img.save(slides_path / thumb_filename)
-        logger.info(f"Generated thumbnail size {parent_path / filename} -> {thumb_filename}")
+        logger.info(
+            f"Generated thumbnail size {parent_path / filename} -> {thumb_filename}"
+        )
 
         screen_img = orig_img.copy()
         screen_img.thumbnail(config.view_size)
         screen_filename = file_path.stem + ".screen" + file_path.suffix
         screen_img.save(slides_path / screen_filename)
-        logger.info(f"Generated screen size {parent_path / filename} -> {screen_filename}")
+        logger.info(
+            f"Generated screen size {parent_path / filename} -> {screen_filename}"
+        )
 
 
 def generate_html(config: Config, path: Path) -> None:
