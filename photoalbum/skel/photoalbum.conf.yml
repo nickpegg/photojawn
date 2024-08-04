@@ -1,5 +1,5 @@
-# Size of thumbnails when viewing an album
-thumbnail_size: [128, 128]
+# Max size of thumbnails when viewing an album
+thumbnail_size: [256, 256]
 
-# Size of images when viewing a single one on screen
+# Max size of images when viewing a single one on screen
 view_size: [1920, 1080]

@@ -63,10 +63,9 @@ def cmd_init(args: Namespace) -> None:
 
             skel_files.append(album_file_path)
 
-            if not album_file_path.exists():
-                album_file_path.parent.mkdir(exist_ok=True)
-                album_file_path.write_bytes(skel_file_path.read_bytes())
-                logger.debug(f"Created skeleton file {album_file_path}")
+            album_file_path.parent.mkdir(exist_ok=True)
+            album_file_path.write_bytes(skel_file_path.read_bytes())
+            logger.debug(f"Created skeleton file {album_file_path}")
 
     print("Some basic files have been created for your album. Edit them as you need:")
     for p in skel_files:

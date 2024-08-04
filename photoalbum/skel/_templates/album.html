@@ -1,1 +1,29 @@
-This is the album template
+{% extends "base.html" %}
+
+{% block content %}
+    {% if album_dir.children %}
+        <h1>Albums</h1>
+        <div id="albums">
+            {% for child in album_dir.children %}
+                <div class="album">
+                    <a href="{{child.path.name}}/">
+                        {{child.path.name}}
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    {% if album_dir.images %}
+        <h1>Photos</h1>
+        <div id="photos">
+            {% for image in album_dir.images %}
+                <div class="thumbnail">
+                    <a href="slides/{{image.html_filename()}}">
+                        <img src="slides/{{image.thumbnail_filename()}}" />
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

@@ -1,1 +1,17 @@
-This is the photo template
+{% extends "base.html" %}
+
+{% block content %}
+<div id="nav">
+    prev
+    <a href="..">up</a>
+    next
+</div>
+
+<div id="photo">
+    <img src="{{image_path.display_filename()}}" />
+</div>
+
+<div id="download">
+    <a href="../{{image_path.path.name}}">view full size</a>
+</div>
+{% endblock %}

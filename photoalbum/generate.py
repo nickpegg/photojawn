@@ -6,8 +6,7 @@ from typing import Iterator
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from PIL import Image, UnidentifiedImageError
-from rich.console import Console
-from rich.progress import track
+from rich.progress import Progress, track
 
 from photoalbum.config import Config
 
@@ -18,7 +17,7 @@ logger = logging.getLogger(__name__)
 class ImageDirectory:
     path: Path
     children: list["ImageDirectory"]
-    images: list[Path]
+    images: list["ImagePath"]
     is_root: bool = False
 
     def walk(self) -> Iterator["ImageDirectory"]:
@@ -26,7 +25,7 @@ class ImageDirectory:
         for child in self.children:
             yield from child.walk()
 
-    def image_paths(self) -> list[Path]:
+    def image_paths(self) -> list["ImagePath"]:
         """
         Iterate through all images in this dir and children
         """
@@ -34,6 +33,29 @@ class ImageDirectory:
         for image_dir in self.walk():
             images += image_dir.images
         return images
+
+
+@dataclass
+class ImagePath:
+    path: Path
+
+    def thumbnail_filename(self) -> str:
+        return self.path.stem + ".thumb" + self.path.suffix
+
+    def thumbnail_path(self) -> Path:
+        return self.path.parent / "slides" / self.thumbnail_filename()
+
+    def display_filename(self) -> str:
+        return self.path.stem + ".screen" + self.path.suffix
+
+    def display_path(self) -> Path:
+        return self.path.parent / "slides" / self.display_filename()
+
+    def html_filename(self) -> str:
+        return self.path.with_suffix(".html").name
+
+    def html_path(self) -> Path:
+        return self.path.parent / "slides" / self.html_filename()
 
 
 def generate(config: Config, album_path: Path) -> None:
@@ -75,7 +97,7 @@ def find_images(root_path: Path) -> ImageDirectory:
         for filename in sorted(filenames):
             file_path = dirpath / filename
             if is_image(file_path):
-                image_dir.images.append(file_path)
+                image_dir.images.append(ImagePath(file_path))
 
         image_dirs[image_dir.path] = image_dir
 
@@ -99,22 +121,22 @@ def generate_thumbnails(config: Config, root_dir: ImageDirectory) -> None:
     """
     for image_path in track(root_dir.image_paths(), description="Making thumbnails..."):
         logger.debug(image_path)
-        orig_img = Image.open(image_path)
+        orig_img = Image.open(image_path.path)
 
-        slides_path = image_path.parent / "slides"
+        slides_path = image_path.path.parent / "slides"
         slides_path.mkdir(exist_ok=True)
 
         thumb_img = orig_img.copy()
         thumb_img.thumbnail(config.thumbnail_size)
-        thumb_filename = image_path.stem + ".thumb" + image_path.suffix
-        thumb_img.save(slides_path / thumb_filename)
-        logger.info(f'Generated thumbnail size "{image_path}" -> "{thumb_filename}"')
+        thumb_path = image_path.thumbnail_path()
+        thumb_img.save(thumb_path)
+        logger.info(f'Generated thumbnail size "{image_path.path}" -> "{thumb_path}"')
 
         screen_img = orig_img.copy()
         screen_img.thumbnail(config.view_size)
-        screen_filename = image_path.stem + ".screen" + image_path.suffix
-        screen_img.save(slides_path / screen_filename)
-        logger.info(f'Generated screen size "{image_path}" -> "{screen_filename}"')
+        screen_path = image_path.display_path()
+        screen_img.save(screen_path)
+        logger.info(f'Generated screen size "{image_path.path}" -> "{screen_path}"')
 
 
 def generate_html(config: Config, root_dir: ImageDirectory) -> None:
@@ -129,20 +151,30 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
     album_tmpl = jinja_env.get_template("album.html")
     photo_tmpl = jinja_env.get_template("photo.html")
 
-    with Console().status("Rendering HTML..."):
+    with Progress() as progress:
+        task = progress.add_task("Rendering HTML...", total=len(root_dir.image_paths()))
+
         for album_dir in root_dir.walk():
             html_path = album_dir.path / "index.html"
             logger.debug(f"Rendering {html_path}")
             with html_path.open("w") as f:
-                f.write(album_tmpl.render())
+                f.write(
+                    album_tmpl.render(
+                        album_dir=album_dir,
+                    )
+                )
 
             for image_path in album_dir.images:
                 # TODO: If a file with a matching name but .txt or .md, add that as the
                 # description for the image
-                html_path = (
-                    image_path.parent / "slides" / image_path.with_suffix(".html").name
-                )
+                html_path = image_path.html_path()
                 html_path.parent.mkdir(exist_ok=True)
                 logger.debug(f"Rendering {html_path}")
                 with html_path.open("w") as f:
-                    f.write(photo_tmpl.render())
+                    f.write(
+                        photo_tmpl.render(
+                            image_path=image_path,
+                        )
+                    )
+
+                progress.update(task, advance=1)
