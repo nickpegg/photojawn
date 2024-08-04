@@ -25,12 +25,25 @@ body {
 
 #content > * {
   width: fit-content;
+  margin-top: 1em;
   margin-left: auto;
   margin-right: auto;
 }
 
 ul {
   padding-left: 1.5em;
+}
+
+#album-children {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+#album-children > * {
+  margin: 1em;
+  padding: 0.75em;
+  background-color: lightgrey;
 }
 
 #album-photos {

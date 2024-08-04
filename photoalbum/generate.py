@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 from pprint import pformat
-from typing import Iterator
+from typing import Iterator, Optional
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from PIL import Image, UnidentifiedImageError
@@ -20,6 +20,8 @@ class ImageDirectory:
     images: list["ImagePath"]
     is_root: bool = False
 
+    cover_path: Optional["ImagePath"] = None
+
     def walk(self) -> Iterator["ImageDirectory"]:
         yield self
         for child in self.children:
@@ -32,6 +34,13 @@ class ImageDirectory:
         images = []
         for image_dir in self.walk():
             images += image_dir.images
+        return images
+
+    def cover_image_paths(self) -> list["ImagePath"]:
+        images = []
+        for image_dir in self.walk():
+            if image_dir.cover_path is not None:
+                images.append(image_dir.cover_path)
         return images
 
 
@@ -97,8 +106,20 @@ def find_images(root_path: Path) -> ImageDirectory:
         for filename in sorted(filenames):
             file_path = dirpath / filename
             if is_image(file_path):
-                image_dir.images.append(ImagePath(file_path))
+                ip = ImagePath(file_path)
 
+                # Set a cover image for the album. Use "cover.jpg" if one exists,
+                # otherwise use the first image we find.
+                if file_path.stem == "cover":
+                    image_dir.cover_path = ip
+                    # Don't add the cover image to the list of images, we want to handle
+                    # that separately
+                    continue
+
+                image_dir.images.append(ip)
+
+        if image_dir.cover_path is None and len(image_dir.images) > 0:
+            image_dir.cover_path = image_dir.images[0]
         image_dirs[image_dir.path] = image_dir
 
     return image_dirs[root_path]
@@ -119,8 +140,10 @@ def generate_thumbnails(config: Config, root_dir: ImageDirectory) -> None:
     """
     Find all of the images and generate thumbnails and on-screen versions
     """
-    for image_path in track(root_dir.image_paths(), description="Making thumbnails..."):
-        logger.debug(image_path)
+    # Include cover images here because we want thumbnails for all of them
+
+    all_images = root_dir.image_paths() + root_dir.cover_image_paths()
+    for image_path in track(all_images, description="Making thumbnails..."):
         orig_img = Image.open(image_path.path)
 
         slides_path = image_path.path.parent / "slides"
@@ -156,9 +179,7 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
 
         for album_dir in root_dir.walk():
             html_path = album_dir.path / "index.html"
-            root_path = root_dir.path.relative_to(
-                html_path.parent, walk_up=True
-            )
+            root_path = root_dir.path.relative_to(html_path.parent, walk_up=True)
 
             logger.debug(f"Rendering {html_path}")
             with html_path.open("w") as f:
@@ -172,18 +193,19 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
             for pos, image_path in enumerate(album_dir.images):
                 # TODO: If a file with a matching name but .txt or .md, add that as the
                 # description for the image
+                if image_path.path.stem == "cover":
+                    continue
+
                 html_path = image_path.html_path()
-                root_path = root_dir.path.relative_to(
-                    html_path.parent, walk_up=True
-                )
+                root_path = root_dir.path.relative_to(html_path.parent, walk_up=True)
                 html_path.parent.mkdir(exist_ok=True)
 
                 prev_image = None
                 next_image = None
                 if pos != 0:
-                    prev_image = album_dir.images[pos-1]
+                    prev_image = album_dir.images[pos - 1]
                 if pos < len(album_dir.images) - 1:
-                    next_image = album_dir.images[pos+1]
+                    next_image = album_dir.images[pos + 1]
 
                 logger.debug(f"Rendering {html_path}")
                 with html_path.open("w") as f:

@@ -9,19 +9,30 @@
         </p>
     {% endif %}
 
+    {% if not album_dir.is_root %}
+    <h1>{{album_dir.path.name}}</h1>
+    {% endif %}
     {% if album_dir.children %}
-        <ul id="album-children">
+        <div id="album-children">
             {% for child in album_dir.children %}
-                <li class="album">
+                <div class="album">
                     <a href="{{child.path.name}}/">
+                        <div>
+                        {% if child.cover_path %}
+                        <img src="{{child.path.name}}/slides/{{child.cover_path.thumbnail_filename()}}" />
+                        {% endif %}
+                        </div>
+                        <div>
                         {{child.path.name}}
+                        </div>
                     </a>
-                </li>
+                </div>
             {% endfor %}
-        </ul>
+        </div>
     {% endif %}
 
     {% if album_dir.images %}
+        <h2>Photos</h2>
         <div id="album-photos">
             {% for image in album_dir.images %}
                 <div class="thumbnail">
