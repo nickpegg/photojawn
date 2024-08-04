@@ -1,5 +1,20 @@
 {% extends "base.html" %}
 
+{% block js %}
+    // Do left/right navigation on keypresses
+    document.onkeydown = function(event) {
+        if (event.key == "ArrowLeft") {
+            {% if prev_image %}
+            location.href = "{{prev_image.html_filename()}}";
+            {% endif %}
+        } else if (event.key == "ArrowRight") {
+            {% if next_image %}
+            location.href = "{{next_image.html_filename()}}";
+            {% endif %}
+        }
+    }
+{% endblock %}
+
 {% block content %}
 <div id="nav">
     <div>

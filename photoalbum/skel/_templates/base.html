@@ -3,13 +3,17 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="{{ static_dir }}/index.css" type="text/css">
         <title>My Photos</title>
+        <link rel="stylesheet" href="{{ static_dir }}/index.css" type="text/css">
     </head>
     <body>
         <div id="content">
         {% block content %}
         {% endblock %}
         </div>
+        <script type="text/javascript">
+            {% block js %}
+            {% endblock %}
+        </script>
     </body>
 </html>
