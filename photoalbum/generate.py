@@ -149,17 +149,19 @@ def generate_thumbnails(config: Config, root_dir: ImageDirectory) -> None:
         slides_path = image_path.path.parent / "slides"
         slides_path.mkdir(exist_ok=True)
 
-        thumb_img = orig_img.copy()
-        thumb_img.thumbnail(config.thumbnail_size)
         thumb_path = image_path.thumbnail_path()
-        thumb_img.save(thumb_path)
-        logger.info(f'Generated thumbnail size "{image_path.path}" -> "{thumb_path}"')
+        if not thumb_path.exists() or not config.quick:
+            thumb_img = orig_img.copy()
+            thumb_img.thumbnail(config.thumbnail_size)
+            thumb_img.save(thumb_path)
+            logger.info(f'Generated thumbnail size "{image_path.path}" -> "{thumb_path}"')
 
-        screen_img = orig_img.copy()
-        screen_img.thumbnail(config.view_size)
         screen_path = image_path.display_path()
-        screen_img.save(screen_path)
-        logger.info(f'Generated screen size "{image_path.path}" -> "{screen_path}"')
+        if not screen_path.exists() or not config.quick:
+            screen_img = orig_img.copy()
+            screen_img.thumbnail(config.view_size)
+            screen_img.save(screen_path)
+            logger.info(f'Generated screen size "{image_path.path}" -> "{screen_path}"')
 
 
 def generate_html(config: Config, root_dir: ImageDirectory) -> None:

@@ -31,9 +31,74 @@ def main() -> None:
         case "init":
             cmd_init(args)
         case "generate":
+            if args.quick:
+                config.quick = args.quick
             cmd_generate(args, config)
         case "clean":
             cmd_clean(args, config)
+
+
+def parse_args() -> Namespace:
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--config",
+        "-c",
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to photoalbum.config.json for the album",
+    )
+    parser.add_argument(
+        "--logging",
+        default="warning",
+        choices=[level.lower() for level in logging.getLevelNamesMapping().keys()],
+        help="Log level",
+    )
+
+    subcommands = parser.add_subparsers(title="subcommands")
+
+    init_cmd = subcommands.add_parser(
+        "init",
+        help="Initialize an photo directory",
+    )
+    init_cmd.set_defaults(action="init")
+    init_cmd.add_argument(
+        "album_path",
+        nargs="?",
+        default=".",
+        help="Path to the main photos directory",
+    )
+
+    # Generate subcommand
+    generate_cmd = subcommands.add_parser(
+        "generate",
+        help="Generate the HTML photo album",
+    )
+    generate_cmd.set_defaults(action="generate")
+    generate_cmd.add_argument(
+        "--quick",
+        action="store_true",
+        help="Quick mode - don't regenerate thumbnails",
+    )
+    generate_cmd.add_argument(
+        "album_path",
+        nargs="?",
+        default=".",
+        help="Path to the main photos directory",
+    )
+
+    # Clean subcommand
+    clean_cmd = subcommands.add_parser(
+        "clean",
+        help="Remove all generated content from the photo album directory",
+    )
+    clean_cmd.set_defaults(action="clean")
+    clean_cmd.add_argument(
+        "album_path",
+        nargs="?",
+        default=".",
+        help="Path to the main photos directory",
+    )
+
+    return parser.parse_args()
 
 
 ########################################
@@ -86,64 +151,6 @@ def cmd_clean(args: Namespace, config: Config) -> None:
 
 ########################################
 # CLI Util functions
-def parse_args() -> Namespace:
-    parser = ArgumentParser()
-    parser.add_argument(
-        "--config",
-        "-c",
-        default=DEFAULT_CONFIG_PATH,
-        help="Path to photoalbum.config.json for the album",
-    )
-    parser.add_argument(
-        "--logging",
-        default="warning",
-        choices=[level.lower() for level in logging.getLevelNamesMapping().keys()],
-        help="Log level",
-    )
-
-    subcommands = parser.add_subparsers(title="subcommands")
-
-    init_cmd = subcommands.add_parser(
-        "init",
-        help="Initialize an photo directory",
-    )
-    init_cmd.set_defaults(action="init")
-    init_cmd.add_argument(
-        "album_path",
-        nargs="?",
-        default=".",
-        help="Path to the main photos directory",
-    )
-
-    # Generate subcommand
-    generate_cmd = subcommands.add_parser(
-        "generate",
-        help="Generate the HTML photo album",
-    )
-    generate_cmd.set_defaults(action="generate")
-    generate_cmd.add_argument(
-        "album_path",
-        nargs="?",
-        default=".",
-        help="Path to the main photos directory",
-    )
-
-    # Clean subcommand
-    clean_cmd = subcommands.add_parser(
-        "clean",
-        help="Remove all generated content from the photo album directory",
-    )
-    clean_cmd.set_defaults(action="clean")
-    clean_cmd.add_argument(
-        "album_path",
-        nargs="?",
-        default=".",
-        help="Path to the main photos directory",
-    )
-
-    return parser.parse_args()
-
-
 def setup_logging(level_str: str) -> None:
     levels = logging.getLevelNamesMapping()
     level = levels[level_str.upper()]

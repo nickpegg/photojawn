@@ -16,6 +16,10 @@ class Config:
     # Size of the image when looking at the standalone image page
     view_size: tuple[int, int] = (1920, 1080)
 
+    # Quick mode:
+    # - Don't regenerate thumbnails if they already exist
+    quick: bool = False
+
     @classmethod
     def from_yaml(cls, contents: bytes) -> "Config":
         conf = cls()
