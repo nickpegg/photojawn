@@ -10,7 +10,6 @@
     {% endif %}
 
     {% if album_dir.children %}
-        <h1>Albums</h1>
         <ul id="album-children">
             {% for child in album_dir.children %}
                 <li class="album">
@@ -23,7 +22,6 @@
     {% endif %}
 
     {% if album_dir.images %}
-        <h1>Photos</h1>
         <div id="album-photos">
             {% for image in album_dir.images %}
                 <div class="thumbnail">

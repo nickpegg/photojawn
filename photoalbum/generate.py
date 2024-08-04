@@ -156,15 +156,15 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
 
         for album_dir in root_dir.walk():
             html_path = album_dir.path / "index.html"
-            static_path = root_dir.path.relative_to(
+            root_path = root_dir.path.relative_to(
                 html_path.parent, walk_up=True
-            ) / "static"
+            )
 
             logger.debug(f"Rendering {html_path}")
             with html_path.open("w") as f:
                 f.write(
                     album_tmpl.render(
-                        static_dir=static_path,
+                        root_path=root_path,
                         album_dir=album_dir,
                     )
                 )
@@ -173,9 +173,9 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
                 # TODO: If a file with a matching name but .txt or .md, add that as the
                 # description for the image
                 html_path = image_path.html_path()
-                static_path = root_dir.path.relative_to(
+                root_path = root_dir.path.relative_to(
                     html_path.parent, walk_up=True
-                ) / "static"
+                )
                 html_path.parent.mkdir(exist_ok=True)
 
                 prev_image = None
@@ -189,7 +189,7 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
                 with html_path.open("w") as f:
                     f.write(
                         photo_tmpl.render(
-                            static_dir=static_path,
+                            root_path=root_path,
                             image_path=image_path,
                             prev_image=prev_image,
                             next_image=next_image,

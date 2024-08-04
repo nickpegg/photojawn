@@ -4,9 +4,14 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>My Photos</title>
-        <link rel="stylesheet" href="{{ static_dir }}/index.css" type="text/css">
+        <link rel="stylesheet" href="{{ root_path }}/static/index.css" type="text/css">
     </head>
     <body>
+        <div id="header">
+            <a href="{{ root_path }}">
+                <h1>My Photos</h1>
+            </a>
+        </div>
         <div id="content">
         {% block content %}
         {% endblock %}

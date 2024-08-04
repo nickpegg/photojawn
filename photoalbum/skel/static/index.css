@@ -1,4 +1,19 @@
 body {
+  margin: 0;
+}
+
+#header {
+  background-color: #eee;
+}
+
+#header * {
+  margin-top: 0;
+  text-decoration: inherit;
+  color: inherit;
+}
+
+#header h1 {
+  padding: 0.5em;
 }
 
 #content {
