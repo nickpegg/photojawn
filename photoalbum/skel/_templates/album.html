@@ -3,21 +3,23 @@
 {% block content %}
     {% if not album_dir.is_root %}
         <p>
-            <a href="..">up</a>
+            <a href="..">
+                <i class="arrow arrow-up"></i>
+            </a>
         </p>
     {% endif %}
 
     {% if album_dir.children %}
         <h1>Albums</h1>
-        <div id="album-children">
+        <ul id="album-children">
             {% for child in album_dir.children %}
-                <div class="album">
+                <li class="album">
                     <a href="{{child.path.name}}/">
                         {{child.path.name}}
                     </a>
-                </div>
+                </li>
             {% endfor %}
-        </div>
+        </ul>
     {% endif %}
 
     {% if album_dir.images %}

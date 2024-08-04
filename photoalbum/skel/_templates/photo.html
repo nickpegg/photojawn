@@ -2,9 +2,25 @@
 
 {% block content %}
 <div id="nav">
-    prev
-    <a href="..">up</a>
-    next
+    <div>
+        {% if prev_image %}
+            <a href="{{prev_image.html_filename()}}">
+                <i class="arrow arrow-left"></i>
+            </a>
+        {% endif %}
+    </div>
+    <div>
+        <a href="..">
+            <i class="arrow arrow-up"></i>
+        </a>
+    </div>
+    <div>
+        {% if next_image %}
+            <a href="{{next_image.html_filename()}}">
+                <i class="arrow arrow-right"></i>
+            </a>
+        {% endif %}
+    </div>
 </div>
 
 <div id="photo">

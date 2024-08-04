@@ -4,6 +4,18 @@ body {
 #content {
   width: 1500px;
   text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#content > * {
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+ul {
+  padding-left: 1.5em;
 }
 
 #album-photos {
@@ -16,4 +28,37 @@ body {
   margin: 1em;
   display: flex;
   align-items: center;
+}
+
+#nav {
+  width: 150px;
+  margin: auto;
+  display: flex;
+  padding: 0.5em;
+}
+
+#nav div {
+  width: 50px;
+}
+
+.arrow {
+  border: solid black;
+  border-width: 0 3px 3px 0;
+  display: inline-block;
+  padding: 3px;
+}
+
+.arrow-right {
+  transform: rotate(-45deg);
+  -webkit-transform: rotate(-45deg);
+}
+
+.arrow-left {
+  transform: rotate(135deg);
+  -webkit-transform: rotate(135deg);
+}
+
+.arrow-up {
+  transform: rotate(-135deg);
+  -webkit-transform: rotate(-135deg);
 }

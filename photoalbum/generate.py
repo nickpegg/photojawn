@@ -169,7 +169,7 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
                     )
                 )
 
-            for image_path in album_dir.images:
+            for pos, image_path in enumerate(album_dir.images):
                 # TODO: If a file with a matching name but .txt or .md, add that as the
                 # description for the image
                 html_path = image_path.html_path()
@@ -178,12 +178,21 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
                 ) / "static"
                 html_path.parent.mkdir(exist_ok=True)
 
+                prev_image = None
+                next_image = None
+                if pos != 0:
+                    prev_image = album_dir.images[pos-1]
+                if pos < len(album_dir.images) - 1:
+                    next_image = album_dir.images[pos+1]
+
                 logger.debug(f"Rendering {html_path}")
                 with html_path.open("w") as f:
                     f.write(
                         photo_tmpl.render(
                             static_dir=static_path,
                             image_path=image_path,
+                            prev_image=prev_image,
+                            next_image=next_image,
                         )
                     )
 
