@@ -2,7 +2,7 @@ body {
 }
 
 #content {
-  width: 1500px;
+  max-width: 1500px;
   text-align: center;
   margin-left: auto;
   margin-right: auto;
@@ -39,6 +39,11 @@ ul {
 
 #nav div {
   width: 50px;
+}
+
+#photo img {
+  max-width: 100%;
+  height: auto;
 }
 
 .arrow {
