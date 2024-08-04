@@ -1,0 +1,19 @@
+body {
+}
+
+#content {
+  width: 1500px;
+  text-align: center;
+}
+
+#album-photos {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.thumbnail {
+  margin: 1em;
+  display: flex;
+  align-items: center;
+}
