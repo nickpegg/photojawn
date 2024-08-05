@@ -7,6 +7,7 @@ from typing import Iterator, Optional
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from PIL import Image, UnidentifiedImageError
 from rich.progress import Progress, track
+from markdown import markdown
 
 from photojawn.config import Config
 
@@ -19,6 +20,7 @@ class ImageDirectory:
     children: list["ImageDirectory"]
     images: list["ImagePath"]
     is_root: bool = False
+    description: str = ""
 
     cover_path: Optional["ImagePath"] = None
 
@@ -105,7 +107,11 @@ def find_images(root_path: Path) -> ImageDirectory:
 
         for filename in sorted(filenames):
             file_path = dirpath / filename
-            if is_image(file_path):
+            if filename == "description.txt":
+                image_dir.description = file_path.read_text()
+            elif filename == "description.md":
+                image_dir.description = markdown(file_path.read_text())
+            elif is_image(file_path):
                 ip = ImagePath(file_path)
 
                 # Set a cover image for the album. Use "cover.jpg" if one exists,
@@ -154,7 +160,9 @@ def generate_thumbnails(config: Config, root_dir: ImageDirectory) -> None:
             thumb_img = orig_img.copy()
             thumb_img.thumbnail(config.thumbnail_size)
             thumb_img.save(thumb_path)
-            logger.info(f'Generated thumbnail size "{image_path.path}" -> "{thumb_path}"')
+            logger.info(
+                f'Generated thumbnail size "{image_path.path}" -> "{thumb_path}"'
+            )
 
         screen_path = image_path.display_path()
         if not screen_path.exists() or not config.quick:

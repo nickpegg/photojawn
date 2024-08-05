@@ -12,6 +12,11 @@
     {% if not album_dir.is_root %}
     <h1>{{album_dir.path.name}}</h1>
     {% endif %}
+
+    {% if album_dir.description %}
+    {{ album_dir.description | safe }}
+    {% endif %}
+
     {% if album_dir.children %}
         <div id="album-children">
             {% for child in album_dir.children %}
