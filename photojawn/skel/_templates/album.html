@@ -2,15 +2,13 @@
 
 {% block content %}
     {% if not album_dir.is_root %}
-        <p>
-            <a href="..">
-                <i class="arrow arrow-up"></i>
-            </a>
-        </p>
-    {% endif %}
-
-    {% if not album_dir.is_root %}
-    <h1>{{album_dir.path.name}}</h1>
+    <h1>
+        <a href="{{root_path}}">Home</a>
+        {% for href, name in breadcrumbs %}
+        / <a href="{{href}}">{{name}}</a>
+        {% endfor %}
+        / {{album_dir.path.name}}
+    </h1>
     {% endif %}
 
     {% if album_dir.description %}

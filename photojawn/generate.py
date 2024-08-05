@@ -5,9 +5,9 @@ from pprint import pformat
 from typing import Iterator, Optional
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markdown import markdown
 from PIL import Image, UnidentifiedImageError
 from rich.progress import Progress, track
-from markdown import markdown
 
 from photojawn.config import Config
 
@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ImageDirectory:
     path: Path
+    rel_path: Path  # Path relative to the root dir
     children: list["ImageDirectory"]
     images: list["ImagePath"]
     is_root: bool = False
@@ -90,7 +91,9 @@ def find_images(root_path: Path) -> ImageDirectory:
     # image_dirs keeps track of all directories we find with images in them, so we can
     # attach them as children to parent directories
     image_dirs: dict[Path, ImageDirectory] = {
-        root_path: ImageDirectory(path=root_path, children=[], images=[], is_root=True)
+        root_path: ImageDirectory(
+            path=root_path, rel_path=Path("."), children=[], images=[], is_root=True
+        )
     }
 
     for dirpath, dirnames, filenames in root_path.walk(top_down=False):
@@ -98,7 +101,13 @@ def find_images(root_path: Path) -> ImageDirectory:
             continue
 
         image_dir = image_dirs.get(
-            dirpath, ImageDirectory(path=dirpath, children=[], images=[])
+            dirpath,
+            ImageDirectory(
+                path=dirpath,
+                rel_path=dirpath.relative_to(root_path),
+                children=[],
+                images=[],
+            ),
         )
 
         for dirname in sorted(dirnames):
@@ -199,12 +208,27 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
             html_path = album_dir.path / "index.html"
             root_path = root_dir.path.relative_to(html_path.parent, walk_up=True)
 
+            # TODO build breadcrumbs here, (href, name)
+            breadcrumbs = []
+            if not album_dir.is_root:
+                crumb_pos = album_dir.path.parent
+                while crumb_pos != root_dir.path:
+                    breadcrumbs.append(
+                        (
+                            str(crumb_pos.relative_to(album_dir.path, walk_up=True)),
+                            crumb_pos.name,
+                        )
+                    )
+                    crumb_pos = crumb_pos.parent
+            breadcrumbs.reverse()
+
             logger.debug(f"Rendering {html_path}")
             with html_path.open("w") as f:
                 f.write(
                     album_tmpl.render(
                         root_path=root_path,
                         album_dir=album_dir,
+                        breadcrumbs=breadcrumbs,
                     )
                 )
 
