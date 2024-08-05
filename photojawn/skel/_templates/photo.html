@@ -16,6 +16,10 @@
 {% endblock %}
 
 {% block content %}
+<div id="photo">
+    <img src="{{image_path.display_filename()}}" />
+</div>
+
 <div id="nav">
     <div>
         {% if prev_image %}
@@ -36,10 +40,6 @@
             </a>
         {% endif %}
     </div>
-</div>
-
-<div id="photo">
-    <img src="{{image_path.display_filename()}}" />
 </div>
 
 <div id="photo-description">
