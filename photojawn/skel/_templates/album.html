@@ -35,9 +35,10 @@
             {% endfor %}
         </div>
     {% endif %}
-
     {% if album_dir.images %}
+        {% if album_dir.children %}
         <h2>Photos</h2>
+        {% endif %}
         <div id="album-photos">
             {% for image in album_dir.images %}
                 <div class="thumbnail">
