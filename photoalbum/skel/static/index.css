@@ -2,6 +2,10 @@ body {
   margin: 0;
 }
 
+a {
+  color: #ba1200;
+}
+
 #header {
   background-color: #eee;
 }
