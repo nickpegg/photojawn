@@ -42,6 +42,12 @@
     <img src="{{image_path.display_filename()}}" />
 </div>
 
+<div id="photo-description">
+    {% if image_path.description %}
+    {{ image_path.description | safe }}
+    {% endif %}
+</div>
+
 <div id="download">
     <a href="../{{image_path.path.name}}">view full size</a>
 </div>

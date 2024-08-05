@@ -49,6 +49,7 @@ class ImageDirectory:
 @dataclass
 class ImagePath:
     path: Path
+    description: str = ""
 
     def thumbnail_filename(self) -> str:
         return self.path.stem + ".thumb" + self.path.suffix
@@ -121,6 +122,13 @@ def find_images(root_path: Path) -> ImageDirectory:
                     # Don't add the cover image to the list of images, we want to handle
                     # that separately
                     continue
+
+                # If there's an associated .txt or .md file, read it in as the image's
+                # description
+                if file_path.with_suffix(".md").exists():
+                    ip.description = markdown(file_path.with_suffix(".md").read_text())
+                elif file_path.with_suffix(".txt").exists():
+                    ip.description = file_path.with_suffix(".txt").read_text()
 
                 image_dir.images.append(ip)
 
