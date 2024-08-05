@@ -8,7 +8,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from PIL import Image, UnidentifiedImageError
 from rich.progress import Progress, track
 
-from photoalbum.config import Config
+from photojawn.config import Config
 
 logger = logging.getLogger(__name__)
 

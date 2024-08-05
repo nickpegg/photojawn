@@ -37,7 +37,7 @@ run:
 	podman-compose up
 
 build:
-	podman build -t nickpegg/photoalbum . --build-arg GIT_COMMIT=$(shell git rev-parse --short HEAD)
+	podman build -t nickpegg/photojawn . --build-arg GIT_COMMIT=$(shell git rev-parse --short HEAD)
 
 clean:
 	podman-compose down --rmi all

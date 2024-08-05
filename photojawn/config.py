@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 import yaml
 
-DEFAULT_CONFIG_PATH = "photoalbum.conf.yml"
+DEFAULT_CONFIG_PATH = "photojawn.conf.yml"
 
 logger = logging.getLogger(__name__)
 

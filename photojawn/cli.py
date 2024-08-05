@@ -4,10 +4,10 @@ from pathlib import Path
 
 from rich.logging import RichHandler
 
-from photoalbum.config import DEFAULT_CONFIG_PATH, Config
-from photoalbum.generate import generate
+from photojawn.config import DEFAULT_CONFIG_PATH, Config
+from photojawn.generate import generate
 
-logger = logging.getLogger("photoalbum.cli")
+logger = logging.getLogger("photojawn.cli")
 
 
 def main() -> None:
@@ -22,7 +22,7 @@ def main() -> None:
     elif args.action != "init":
         logger.error(
             f"No config file found at {conf_path}. If this is a new photo directory, "
-            "please run `photoalbum init` in there first."
+            "please run `photojawn init` in there first."
         )
         return
 
@@ -44,7 +44,7 @@ def parse_args() -> Namespace:
         "--config",
         "-c",
         default=DEFAULT_CONFIG_PATH,
-        help="Path to photoalbum.config.json for the album",
+        help="Path to photojawn.config.json for the album",
     )
     parser.add_argument(
         "--logging",
@@ -144,7 +144,7 @@ def cmd_generate(args: Namespace, config: Config) -> None:
 
 def cmd_clean(args: Namespace, config: Config) -> None:
     """
-    Clean the photo album by all files that photoalbum generated
+    Clean the photo album by all files that photojawn generated
     """
     pass
 

@@ -1,4 +1,4 @@
-# photoalbum
+# photojawn
 
 A super simple photo album static site generator. You give it a path to a folder of
 photos and other photos, and it'll generate a basic photo album in that directory. Then
@@ -7,5 +7,5 @@ host it.
 
 It's everything I need and nothing I don't.
 
-Heavily inspired by the photoalbums found on bayarearides.com
+Heavily inspired by the photo albums found on https://bayarearides.com
 ([example](https://bayarearides.com/rides/annadel1/photos/)).

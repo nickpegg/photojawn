@@ -1,14 +1,14 @@
 [tool.poetry]
-name = "photoalbum"
+name = "photojawn"
 version = "0.1.0"
 description = "A simple photo album static site generator"
 authors = ["Nick Pegg <nick@nickpegg.com>"]
-repository = "https://github.com/nickpegg/photoalbum"
+repository = "https://github.com/nickpegg/photojawn"
 readme = "README.md"
 license = "TODO"
 
 [tool.poetry.scripts]
-photoalbum = 'photoalbum.cli:main'
+photojawn = 'photojawn.cli:main'
 
 [tool.poetry.dependencies]
 # TODO: make sure we support >=3.10 via tests
