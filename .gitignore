@@ -1,6 +1,7 @@
 # Python stuff
 __pycache__
 .testmondata
+dist
 
 # Project specific files
 test_album
