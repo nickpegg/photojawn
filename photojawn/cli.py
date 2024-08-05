@@ -1,4 +1,5 @@
 import logging
+import sys
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
@@ -15,16 +16,17 @@ def main() -> None:
     setup_logging(args.logging)
 
     # Load config from file if it exists
-    conf_path = Path(args.album_path) / Path(args.config)
-    if conf_path.exists():
-        logger.debug(f"Reading config from {conf_path}")
-        config = Config.from_yaml(conf_path.read_bytes())
-    elif args.action != "init":
-        logger.error(
-            f"No config file found at {conf_path}. If this is a new photo directory, "
-            "please run `photojawn init` in there first."
-        )
-        return
+    if hasattr(args, "album_path"):
+        conf_path = Path(args.album_path) / Path(args.config)
+        if conf_path.exists():
+            logger.debug(f"Reading config from {conf_path}")
+            config = Config.from_yaml(conf_path.read_bytes())
+        elif args.action != "init":
+            logger.error(
+                f"No config file found at {conf_path}. If this is a new photo directory, "
+                "please run `photojawn init` in there first."
+            )
+            return
 
     # Call the subcommand function
     match args.action:
@@ -98,7 +100,12 @@ def parse_args() -> Namespace:
         help="Path to the main photos directory",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    if not hasattr(args, 'action'):
+        parser.print_help()
+        sys.exit(0)
+
+    return args
 
 
 ########################################
