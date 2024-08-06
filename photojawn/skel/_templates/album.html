@@ -22,7 +22,8 @@
                     <a href="{{child.path.name}}/">
                         <div>
                         {% if child.cover_path %}
-                        <img src="{{child.path.name}}/slides/{{child.cover_path.thumbnail_filename()}}" />
+                        <img
+                        src="{{child.cover_path.path.parent.relative_to(album_dir.path)}}/slides/{{child.cover_path.thumbnail_filename()}}" />
                         {% endif %}
                         </div>
                         <div>

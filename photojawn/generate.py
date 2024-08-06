@@ -1,7 +1,7 @@
 import logging
+import os
 from dataclasses import dataclass
 from pathlib import Path
-from pprint import pformat
 from typing import Iterator, Optional
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -17,7 +17,6 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ImageDirectory:
     path: Path
-    rel_path: Path  # Path relative to the root dir
     children: list["ImageDirectory"]
     images: list["ImagePath"]
     is_root: bool = False
@@ -75,10 +74,18 @@ def generate(config: Config, album_path: Path) -> None:
     """
     Main generation function
     """
-    root_dir = find_images(album_path)
-    logger.debug(pformat(root_dir))
+    # Change the working directory to the album_path so that all paths are relative to
+    # it when we find images. We need to do this because all the paths in HTML need to
+    # be relative to it and we don't want to have to do a bunch of path gymnastics to
+    # re-relative all those paths.
+    orig_wd = Path.cwd()
+    os.chdir(album_path)
+
+    root_dir = find_images(Path("."))
     generate_thumbnails(config, root_dir)
     generate_html(config, root_dir)
+
+    os.chdir(orig_wd)
 
 
 def find_images(root_path: Path) -> ImageDirectory:
@@ -91,9 +98,7 @@ def find_images(root_path: Path) -> ImageDirectory:
     # image_dirs keeps track of all directories we find with images in them, so we can
     # attach them as children to parent directories
     image_dirs: dict[Path, ImageDirectory] = {
-        root_path: ImageDirectory(
-            path=root_path, rel_path=Path("."), children=[], images=[], is_root=True
-        )
+        root_path: ImageDirectory(path=root_path, children=[], images=[], is_root=True)
     }
 
     for dirpath, dirnames, filenames in root_path.walk(top_down=False):
@@ -104,7 +109,6 @@ def find_images(root_path: Path) -> ImageDirectory:
             dirpath,
             ImageDirectory(
                 path=dirpath,
-                rel_path=dirpath.relative_to(root_path),
                 children=[],
                 images=[],
             ),
@@ -141,8 +145,14 @@ def find_images(root_path: Path) -> ImageDirectory:
 
                 image_dir.images.append(ip)
 
-        if image_dir.cover_path is None and len(image_dir.images) > 0:
-            image_dir.cover_path = image_dir.images[0]
+        if image_dir.cover_path is None:
+            if len(image_dir.images) > 0:
+                image_dir.cover_path = image_dir.images[0]
+            elif len(image_dir.children) > 0:
+                cover = image_dir.children[0].cover_path
+                logger.debug(f"nested cover path for {image_dir.path.name}: {cover}")
+                image_dir.cover_path = cover
+
         image_dirs[image_dir.path] = image_dir
 
     return image_dirs[root_path]

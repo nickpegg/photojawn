@@ -101,7 +101,7 @@ def parse_args() -> Namespace:
     )
 
     args = parser.parse_args()
-    if not hasattr(args, 'action'):
+    if not hasattr(args, "action"):
         parser.print_help()
         sys.exit(0)
 
