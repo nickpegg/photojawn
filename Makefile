@@ -33,11 +33,11 @@ test-fast:
 test-watch:
 	find . -name '*py' -or -name '*html' -or -name poetry.lock | entr -r -c make test-fast
 
-run:
-	podman-compose up
-
 build:
+	poetry build
+
+docker:
 	podman build -t nickpegg/photojawn . --build-arg GIT_COMMIT=$(shell git rev-parse --short HEAD)
 
-clean:
-	podman-compose down --rmi all
+pex:
+	poetry run pex --project . -o dist/photojawn.pex --scie eager -c photojawn
