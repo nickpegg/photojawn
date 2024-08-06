@@ -9,13 +9,17 @@
         {% endfor %}
         / {{album_dir.path.name}}
     </h1>
+    <hr>
     {% endif %}
 
     {% if album_dir.description %}
+    <div class="caption">
     {{ album_dir.description | safe }}
+    </div>
     {% endif %}
 
     {% if album_dir.children %}
+        <h2>Albums</h2>
         <div id="album-children">
             {% for child in album_dir.children %}
                 <div class="album">

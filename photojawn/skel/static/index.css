@@ -22,15 +22,14 @@ a {
 
 #content {
   text-align: center;
+  max-width: 1200px;
   margin: 0.5em;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 #content > * {
-  width: fit-content;
-  max-width: 1500px;
   margin-top: 1em;
-  margin-left: auto;
-  margin-right: auto;
 }
 
 ul {
@@ -47,6 +46,9 @@ ul {
   margin: 1em;
   padding: 0.75em;
   background-color: lightgrey;
+  height: min-content;
+  border: thin solid black;
+  box-shadow: 0.25em 0.25em #ccc;
 }
 
 #album-photos {
@@ -79,6 +81,12 @@ ul {
 #photo img {
   max-width: 100%;
   height: auto;
+}
+
+.caption {
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .arrow {
