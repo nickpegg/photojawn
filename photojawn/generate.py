@@ -1,4 +1,5 @@
 import logging
+import shutil
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,14 +82,15 @@ def generate(config: Config, album_path: Path) -> None:
     orig_wd = Path.cwd()
     os.chdir(album_path)
 
-    root_dir = find_images(Path("."))
-    generate_thumbnails(config, root_dir)
+    root_dir = find_images(config, Path("."))
+    generate_images(config, root_dir)
     generate_html(config, root_dir)
+    shutil.copytree("static", Path(config.output_dir) / "static")
 
     os.chdir(orig_wd)
 
 
-def find_images(root_path: Path) -> ImageDirectory:
+def find_images(config: Config, root_path: Path) -> ImageDirectory:
     """
     Build up an ImageDirectory to track all of the directories and their images.
 
@@ -102,7 +104,7 @@ def find_images(root_path: Path) -> ImageDirectory:
     }
 
     for dirpath, dirnames, filenames in root_path.walk(top_down=False):
-        if dirpath.name in {"slides", "_templates", "static"}:
+        if dirpath.name in {"slides", "_templates", "static", config.output_dir}:
             continue
 
         image_dir = image_dirs.get(
@@ -169,20 +171,26 @@ def is_image(path: Path) -> bool:
         return False
 
 
-def generate_thumbnails(config: Config, root_dir: ImageDirectory) -> None:
+def generate_images(config: Config, root_dir: ImageDirectory) -> None:
     """
-    Find all of the images and generate thumbnails and on-screen versions
+    Find all of the images and generate various image sizes
     """
     # Include cover images here because we want thumbnails for all of them
-
     all_images = root_dir.image_paths() + root_dir.cover_image_paths()
-    for image_path in track(all_images, description="Making thumbnails..."):
+
+    for image_path in track(all_images, description="Making smaller images..."):
         orig_img = Image.open(image_path.path)
 
-        slides_path = image_path.path.parent / "slides"
-        slides_path.mkdir(exist_ok=True)
+        slides_path = config.output_dir / image_path.path.parent / "slides"
+        slides_path.mkdir(exist_ok=True, parents=True)
 
-        thumb_path = image_path.thumbnail_path()
+        # Copy the original image in
+        orig_new_path = config.output_dir / image_path.path
+        if not orig_new_path.exists() or not config.quick:
+            logger.info(f"Copying original image to {orig_new_path}")
+            orig_img.save(orig_new_path)
+
+        thumb_path = config.output_dir / image_path.thumbnail_path()
         if not thumb_path.exists() or not config.quick:
             thumb_img = orig_img.copy()
             thumb_img.thumbnail(config.thumbnail_size)
@@ -191,7 +199,7 @@ def generate_thumbnails(config: Config, root_dir: ImageDirectory) -> None:
                 f'Generated thumbnail size "{image_path.path}" -> "{thumb_path}"'
             )
 
-        screen_path = image_path.display_path()
+        screen_path = config.output_dir / image_path.display_path()
         if not screen_path.exists() or not config.quick:
             screen_img = orig_img.copy()
             screen_img.thumbnail(config.view_size)
@@ -217,8 +225,8 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
         for album_dir in root_dir.walk():
             html_path = album_dir.path / "index.html"
             root_path = root_dir.path.relative_to(html_path.parent, walk_up=True)
+            html_path = config.output_dir / html_path
 
-            # TODO build breadcrumbs here, (href, name)
             breadcrumbs = []
             if not album_dir.is_root:
                 crumb_pos = album_dir.path.parent
@@ -250,6 +258,7 @@ def generate_html(config: Config, root_dir: ImageDirectory) -> None:
 
                 html_path = image_path.html_path()
                 root_path = root_dir.path.relative_to(html_path.parent, walk_up=True)
+                html_path = config.output_dir / html_path
                 html_path.parent.mkdir(exist_ok=True)
 
                 prev_image = None

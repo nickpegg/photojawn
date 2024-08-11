@@ -3,3 +3,7 @@ thumbnail_size: [256, 256]
 
 # Max size of images when viewing a single one on screen
 view_size: [1024, 768]
+
+# Directory where the generated site will be created in. All original images will be
+# copied in to here with the same directory structure.
+output_dir: "site"
