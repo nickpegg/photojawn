@@ -7,6 +7,9 @@ ci: init lint test
 # Final pre-flight checks then deploy everywhere!
 shipit: all build staging prod
 
+version := $(shell yq -p toml .tool.poetry.version < pyproject.toml)
+scie_platforms := linux-aarch64 linux-x86_64 macos-aarch64 macos-x86_64
+
 
 init:
 	poetry install
@@ -33,11 +36,17 @@ test-fast:
 test-watch:
 	find . -name '*py' -or -name '*html' -or -name poetry.lock | entr -r -c make test-fast
 
-build:
-	poetry build
+clean:
+	rm -rv dist || true
 
 docker:
 	podman build -t nickpegg/photojawn . --build-arg GIT_COMMIT=$(shell git rev-parse --short HEAD)
 
-pex:
-	poetry run pex --project . -o dist/photojawn.pex --scie eager -c photojawn
+dist:
+	poetry build
+	poetry run pex --project . -o dist/photojawn -c photojawn --scie eager $(foreach plat,$(scie_platforms), --scie-platform $(plat))
+
+release: dist
+	git push --tags
+	gh release create --verify-tag v$(version)
+	gh release upload v$(version) dist/photojawn-$(version)-*whl $(foreach plat,$(scie_platforms),dist/photojawn-$(plat))
