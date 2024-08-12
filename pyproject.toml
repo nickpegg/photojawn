@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "photojawn"
-version = "0.1.0"
+version = "0.1.1"
 description = "A simple photo album static site generator"
 authors = ["Nick Pegg <nick@nickpegg.com>"]
 repository = "https://github.com/nickpegg/photojawn"
