@@ -10,7 +10,16 @@ It's everything I need and nothing I don't.
 
 ## Getting Started
 
-TODO: Installation instructions lol
+### Installation
+
+Photojawn requires at least Python 3.12. If you don't know what version you
+have, you can check by running `python -V`.
+
+1. Head on over to the [releases](https://github.com/nickpegg/photojawn/releases) page
+2. If you have Python >=3.12, you can install using the wheel (`.whl` file)
+  a. To install, run `pip install photojawn-<version>-py3-none-any.whl`
+3. If you don't have Python >=3.12, you can download one of the standalone binaries depending on your OS and architecture, e.g. `photojawn-linux-x86_64`.
+
 
 ### Initialization
 
