@@ -8,7 +8,10 @@ fn main() -> anyhow::Result<()> {
     let album_path = Path::new(&cli.album_path);
 
     match cli.subcommand {
-        Commands::Init {} => make_skeleton(album_path)?,
+        Commands::Init {} => {
+            make_skeleton(album_path)?;
+            println!("Album created in {}", album_path.display());
+        }
         Commands::Generate { quick } => {
             println!("Generate, quick: {quick}");
             todo!()
