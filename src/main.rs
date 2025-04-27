@@ -1,7 +1,22 @@
 use clap::{Parser, Subcommand};
+use photojawn::skel::make_skeleton;
+use std::path::Path;
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+
+    let album_path = Path::new(&cli.album_path);
+
+    match cli.subcommand {
+        Commands::Init {} => make_skeleton(album_path)?,
+        Commands::Generate { quick } => {
+            println!("Generate, quick: {quick}");
+            todo!()
+        }
+        Commands::Clean {} => todo!(),
+    }
+
+    Ok(())
 }
 
 #[derive(Parser)]
@@ -12,7 +27,7 @@ struct Cli {
     album_path: String,
 
     #[command(subcommand)]
-    command: Commands,
+    subcommand: Commands,
 }
 
 #[derive(Subcommand)]
