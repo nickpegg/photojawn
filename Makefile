@@ -26,7 +26,8 @@ lint:
 
 test:
 	poetry run mypy .
-	poetry run pytest
+	# No tests yet lol
+	# poetry run pytest
 
 # Faster tests, only running what's changed
 test-fast:
