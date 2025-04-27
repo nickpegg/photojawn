@@ -1,0 +1,12 @@
+[package]
+name = "photojawn"
+version = "0.2.0"
+description = "A static site generator for photo albums"
+authors = ["Nick Pegg <nick@nickpegg.com>"]
+license = "MIT"
+repository = "https://github.com/nickpegg/photojawn"
+edition = "2024"
+
+[dependencies]
+anyhow = "^1.0.98"
+clap = { version = "^4.5.37", features = ["derive"] }
