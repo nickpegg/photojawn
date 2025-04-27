@@ -13,7 +13,7 @@ photojawn = 'photojawn.cli:main'
 [tool.poetry.dependencies]
 # TODO: make sure we support >=3.10 via tests
 python = "^3.12,<3.14"
-jinja2 = "^3.1.4"
+jinja2 = "^3.1.6"
 pillow = "^10.4.0"
 rich = "^13.7.1"
 pyyaml = "^6.0.1"
