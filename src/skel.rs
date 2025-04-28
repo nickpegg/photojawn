@@ -31,19 +31,53 @@ pub fn make_skeleton(album_path: &Path) -> Result<(), InitError> {
     )?;
 
     let tmpl_path = album_path.join("_templates");
-    fs::create_dir_all(tmpl_path)?;
+    fs::create_dir_all(&tmpl_path)?;
     fs::write(
-        static_path.join("base.html"),
+        tmpl_path.join("base.html"),
         include_bytes!("../resources/skel/_templates/base.html"),
     )?;
     fs::write(
-        static_path.join("album.html"),
+        tmpl_path.join("album.html"),
         include_bytes!("../resources/skel/_templates/album.html"),
     )?;
     fs::write(
-        static_path.join("photo.html"),
+        tmpl_path.join("photo.html"),
         include_bytes!("../resources/skel/_templates/photo.html"),
     )?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use mktemp::Temp;
+
+    #[test]
+    fn not_exist() {
+        let tmpdir = Temp::new_dir().unwrap();
+        make_skeleton(&tmpdir).unwrap();
+        assert!(tmpdir.join("photojawn.conf.yml").exists());
+        assert!(tmpdir.join("static/index.css").exists());
+        assert!(tmpdir.join("_templates/base.html").exists());
+    }
+
+    #[test]
+    fn config_exists() {
+        let tmpdir = Temp::new_dir().unwrap();
+        fs::write(tmpdir.join("photojawn.conf.yml"), "some: config").unwrap();
+        let res = make_skeleton(&tmpdir);
+        assert!(res.is_err());
+    }
+
+    #[test]
+    fn dir_exists_no_config() {
+        let tmpdir = Temp::new_dir().unwrap();
+        fs::create_dir(tmpdir.join("_templates")).unwrap();
+        fs::write(tmpdir.join("_templates/base.html"), "some template").unwrap();
+        make_skeleton(&tmpdir).unwrap();
+
+        let contents = fs::read(tmpdir.join("_templates/base.html")).unwrap();
+        assert_ne!(contents, "some template".as_bytes());
+    }
 }
