@@ -16,7 +16,6 @@ fn main() -> anyhow::Result<()> {
             println!("Generate, quick: {quick}");
             todo!()
         }
-        Commands::Clean {} => todo!(),
     }
 
     Ok(())
@@ -42,6 +41,4 @@ enum Commands {
         #[arg(long)]
         quick: bool,
     },
-    /// Remove all generated content from the photo album directory
-    Clean {},
 }
