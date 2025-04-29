@@ -1,49 +1,56 @@
+use std::collections::HashMap;
 use std::fs;
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum InitError {
-    #[error("Album directory already initialized - contains a photojawn.conf.yml")]
-    AlreadyInitialized,
+    #[error("Album directory already initialized - contains a {0}")]
+    AlreadyInitialized(PathBuf),
     #[error(transparent)]
     IoError(#[from] io::Error),
 }
 
+/// Creates a new album directory and creates basic versions
 pub fn make_skeleton(album_path: &Path) -> Result<(), InitError> {
-    let cfg_path = album_path.join("photojawn.conf.yml");
-    if cfg_path.exists() {
-        return Err(InitError::AlreadyInitialized);
+    let files: HashMap<PathBuf, Vec<u8>> = HashMap::from([
+        (
+            album_path.join("photojawn.conf.yml"),
+            Vec::from(include_bytes!("../resources/skel/photojawn.conf.yml")),
+        ),
+        (
+            album_path.join("static/index.css"),
+            Vec::from(include_bytes!("../resources/skel/static/index.css")),
+        ),
+        (
+            album_path.join("_templates/base.html"),
+            Vec::from(include_bytes!("../resources/skel/_templates/base.html")),
+        ),
+        (
+            album_path.join("_templates/album.html"),
+            Vec::from(include_bytes!("../resources/skel/_templates/album.html")),
+        ),
+        (
+            album_path.join("_templates/photo.html"),
+            Vec::from(include_bytes!("../resources/skel/_templates/photo.html")),
+        ),
+    ]);
+
+    // Bail if any of the files we would create exist
+    for path in files.keys() {
+        if path.exists() {
+            return Err(InitError::AlreadyInitialized(path.to_path_buf()));
+        }
     }
 
     fs::create_dir_all(album_path)?;
-    fs::write(
-        cfg_path,
-        include_bytes!("../resources/skel/photojawn.conf.yml"),
-    )?;
-
-    let static_path = album_path.join("static");
-    fs::create_dir_all(&static_path)?;
-    fs::write(
-        static_path.join("index.css"),
-        include_bytes!("../resources/skel/static/index.css"),
-    )?;
-
-    let tmpl_path = album_path.join("_templates");
-    fs::create_dir_all(&tmpl_path)?;
-    fs::write(
-        tmpl_path.join("base.html"),
-        include_bytes!("../resources/skel/_templates/base.html"),
-    )?;
-    fs::write(
-        tmpl_path.join("album.html"),
-        include_bytes!("../resources/skel/_templates/album.html"),
-    )?;
-    fs::write(
-        tmpl_path.join("photo.html"),
-        include_bytes!("../resources/skel/_templates/photo.html"),
-    )?;
+    for (path, contents) in files.iter() {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(path, contents)?;
+    }
 
     Ok(())
 }
@@ -75,9 +82,12 @@ mod tests {
         let tmpdir = Temp::new_dir().unwrap();
         fs::create_dir(tmpdir.join("_templates")).unwrap();
         fs::write(tmpdir.join("_templates/base.html"), "some template").unwrap();
-        make_skeleton(&tmpdir).unwrap();
+        let res = make_skeleton(&tmpdir);
+        let err = InitError::AlreadyInitialized(tmpdir.join("_templates/base.html"));
+        assert!(res.is_err());
 
+        // Make sure it didn't clobber our template
         let contents = fs::read(tmpdir.join("_templates/base.html")).unwrap();
-        assert_ne!(contents, "some template".as_bytes());
+        assert_eq!(contents, "some template".as_bytes());
     }
 }
