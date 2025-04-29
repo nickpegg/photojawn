@@ -14,26 +14,26 @@ pub enum InitError {
 
 /// Creates a new album directory and creates basic versions
 pub fn make_skeleton(album_path: &Path) -> Result<(), InitError> {
-    let files: HashMap<PathBuf, Vec<u8>> = HashMap::from([
+    let files = HashMap::from([
         (
             album_path.join("photojawn.conf.yml"),
-            Vec::from(include_bytes!("../resources/skel/photojawn.conf.yml")),
+            include_bytes!("../resources/skel/photojawn.conf.yml").as_slice(),
         ),
         (
             album_path.join("static/index.css"),
-            Vec::from(include_bytes!("../resources/skel/static/index.css")),
+            include_bytes!("../resources/skel/static/index.css").as_slice(),
         ),
         (
             album_path.join("_templates/base.html"),
-            Vec::from(include_bytes!("../resources/skel/_templates/base.html")),
+            include_bytes!("../resources/skel/_templates/base.html").as_slice(),
         ),
         (
             album_path.join("_templates/album.html"),
-            Vec::from(include_bytes!("../resources/skel/_templates/album.html")),
+            include_bytes!("../resources/skel/_templates/album.html").as_slice(),
         ),
         (
             album_path.join("_templates/photo.html"),
-            Vec::from(include_bytes!("../resources/skel/_templates/photo.html")),
+            include_bytes!("../resources/skel/_templates/photo.html").as_slice(),
         ),
     ]);
 
@@ -83,7 +83,6 @@ mod tests {
         fs::create_dir(tmpdir.join("_templates")).unwrap();
         fs::write(tmpdir.join("_templates/base.html"), "some template").unwrap();
         let res = make_skeleton(&tmpdir);
-        let err = InitError::AlreadyInitialized(tmpdir.join("_templates/base.html"));
         assert!(res.is_err());
 
         // Make sure it didn't clobber our template
