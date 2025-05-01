@@ -38,6 +38,7 @@ enum Commands {
     Init {},
     /// Generates a photo album
     Generate {
+        /// Don't re-generate things that already exist (thumbnails, etc.)
         #[arg(long)]
         quick: bool,
     },
