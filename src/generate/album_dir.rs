@@ -35,7 +35,6 @@ impl TryFrom<&PathBuf> for AlbumDir {
             let entry_path = entry?.path();
 
             if entry_path.is_file() {
-                println!("Found file: {}", entry_path.display());
                 if let Some(filename) = entry_path.file_name() {
                     if filename == "description.txt" {
                         description = fs::read_to_string(entry_path)?;
@@ -65,8 +64,6 @@ impl TryFrom<&PathBuf> for AlbumDir {
                     }
                 }
             } else if entry_path.is_dir() {
-                println!("Found dir: {}", entry_path.display());
-
                 if let Some(dirname) = entry_path.file_name().and_then(|n| n.to_str()) {
                     if dirname.starts_with("_") {
                         // Likely a templates or static dir

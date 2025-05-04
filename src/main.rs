@@ -4,8 +4,8 @@ use photojawn::skel::make_skeleton;
 use std::path::Path;
 
 fn main() -> anyhow::Result<()> {
+    env_logger::init();
     let cli = Cli::parse();
-
     let album_path = Path::new(&cli.album_path);
 
     match cli.subcommand {

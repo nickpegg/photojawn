@@ -1,19 +1,23 @@
+use anyhow::Context;
 use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
 
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(default)]
-struct Config {
-    thumbnail_size: (u32, u32),
-    view_size: (u32, u32),
-    output_dir: PathBuf,
+pub struct Config {
+    pub thumbnail_size: (u32, u32),
+    pub view_size: (u32, u32),
+    pub output_dir: PathBuf,
 }
 
 impl Config {
-    fn from_album(path: PathBuf) -> anyhow::Result<Config> {
-        let content = fs::read(path.join("photojawn.conf.yml"))?;
-        let cfg = serde_yml::from_slice(&content)?;
+    pub fn from_album(path: PathBuf) -> anyhow::Result<Config> {
+        let config_path = path.join("photojawn.conf.yml");
+        let content = fs::read(&config_path)
+            .with_context(|| format!("Failed to read config from {}", config_path.display()))?;
+        let cfg = serde_yml::from_slice(&content)
+            .with_context(|| format!("Failed to parse config from {}", config_path.display()))?;
         Ok(cfg)
     }
 }
