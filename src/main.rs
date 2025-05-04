@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use photojawn::generate::generate;
 use photojawn::skel::make_skeleton;
 use std::path::Path;
 
@@ -14,7 +15,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Generate { quick } => {
             println!("Generate, quick: {quick}");
-            todo!()
+            generate(&album_path.to_path_buf());
         }
     }
 

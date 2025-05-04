@@ -20,8 +20,8 @@ pub fn make_skeleton(album_path: &Path) -> Result<(), InitError> {
             include_bytes!("../resources/skel/photojawn.conf.yml").as_slice(),
         ),
         (
-            album_path.join("static/index.css"),
-            include_bytes!("../resources/skel/static/index.css").as_slice(),
+            album_path.join("_static/index.css"),
+            include_bytes!("../resources/skel/_static/index.css").as_slice(),
         ),
         (
             album_path.join("_templates/base.html"),
