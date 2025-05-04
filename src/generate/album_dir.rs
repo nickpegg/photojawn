@@ -1,19 +1,19 @@
 use image::ImageReader;
 use std::ffi::OsString;
-use std::io;
+use std::fs;
 use std::path::PathBuf;
 use std::slice::Iter;
 
 /// An album directory, which has images and possibly child albums
 #[derive(Clone)]
 pub struct AlbumDir {
-    path: PathBuf,
-    images: Vec<Image>,
+    pub path: PathBuf,
+    pub images: Vec<Image>,
     // TOOD: Remove the parent reference? Causes a lot of issues
     // parent: Option<Box<&'a AlbumDir>>,
-    children: Vec<AlbumDir>,
+    pub children: Vec<AlbumDir>,
 
-    description: String,
+    pub description: String,
 }
 
 impl AlbumDir {
@@ -24,9 +24,9 @@ impl AlbumDir {
 }
 
 impl TryFrom<&PathBuf> for AlbumDir {
-    type Error = io::Error;
+    type Error = anyhow::Error;
 
-    fn try_from(p: &PathBuf) -> io::Result<AlbumDir> {
+    fn try_from(p: &PathBuf) -> anyhow::Result<AlbumDir> {
         let mut images = vec![];
         let mut children = vec![];
         let mut description = "".to_string();
@@ -38,20 +38,27 @@ impl TryFrom<&PathBuf> for AlbumDir {
                 println!("Found file: {}", entry_path.display());
                 if let Some(filename) = entry_path.file_name() {
                     if filename == "description.txt" {
-                        todo!();
-                        // description = String::from_utf8(fs::read(entry_path)?)?;
+                        description = fs::read_to_string(entry_path)?;
                     } else if filename == "description.md" {
+                        let _conents = fs::read_to_string(entry_path)?;
+                        // TODO: render markdown
                         todo!();
                     } else {
                         let reader = ImageReader::open(&entry_path)?.with_guessed_format()?;
                         if reader.format().is_some() {
                             // Found an image
-                            // TODO: If image filename but with .md or .txt exists, read that in as
-                            // the image description OR make this part of Image::from<Path>
-                            todo!();
-                            let description = String::new();
+                            let mut description = String::new();
+
+                            // Read in any associated description file
+                            if entry_path.with_extension(".txt").exists() {
+                                description = fs::read_to_string(&entry_path)?;
+                            } else if entry_path.with_extension(".md").exists() {
+                                let _contents = fs::read(entry_path)?;
+                                // TODO: render markdown
+                                todo!();
+                            }
                             images.push(Image {
-                                filename: filename.to_os_string(),
+                                path: entry_path,
                                 description,
                             });
                         }
@@ -128,7 +135,7 @@ impl<'a> Iterator for AlbumIter<'a> {
 
 #[derive(Clone, Hash, PartialEq, Eq)]
 struct Image {
-    filename: OsString,
+    path: PathBuf,
     description: String,
 }
 
@@ -144,11 +151,11 @@ mod tests {
             description: "".to_string(),
             images: vec![
                 Image {
-                    filename: "foo".into(),
+                    path: "foo".into(),
                     description: "".to_string(),
                 },
                 Image {
-                    filename: "bar".into(),
+                    path: "bar".into(),
                     description: "".to_string(),
                 },
             ],
@@ -160,19 +167,19 @@ mod tests {
             description: "".to_string(),
             images: vec![
                 Image {
-                    filename: "subdir/foo".into(),
+                    path: "subdir/foo".into(),
                     description: "".to_string(),
                 },
                 Image {
-                    filename: "subdir/bar".into(),
+                    path: "subdir/bar".into(),
                     description: "".to_string(),
                 },
             ],
             children: vec![AlbumDir {
-                path: "deeper_subdir".into(),
+                path: "subdir/deeper_subdir".into(),
                 description: "".to_string(),
                 images: vec![Image {
-                    filename: "deeper_subdir/image.jpg".into(),
+                    path: "subdir/deeper_subdir/image.jpg".into(),
                     description: "".to_string(),
                 }],
                 children: vec![],
@@ -186,20 +193,14 @@ mod tests {
             children: vec![],
         });
 
-        let imgs: HashSet<String> = ad
-            .iter()
-            .map(|i| i.filename.to_str().unwrap().to_string())
-            .collect();
-        let expected: HashSet<String> = [
+        let imgs: HashSet<&str> = ad.iter().map(|i| i.path.to_str().unwrap()).collect();
+        let expected: HashSet<&str> = HashSet::from([
             "foo",
             "bar",
             "subdir/foo",
             "subdir/bar",
-            "deeper_subdir/image.jpg",
-        ]
-        .iter()
-        .map(|s| s.to_string())
-        .collect();
+            "subdir/deeper_subdir/image.jpg",
+        ]);
         assert_eq!(imgs, expected);
     }
 }
