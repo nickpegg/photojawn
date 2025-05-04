@@ -144,11 +144,11 @@ mod tests {
             description: "".to_string(),
             images: vec![
                 Image {
-                    path: "foo".into(),
+                    filename: "foo".into(),
                     description: "".to_string(),
                 },
                 Image {
-                    path: "bar".into(),
+                    filename: "bar".into(),
                     description: "".to_string(),
                 },
             ],
@@ -160,11 +160,11 @@ mod tests {
             description: "".to_string(),
             images: vec![
                 Image {
-                    path: "subdir/foo".into(),
+                    filename: "subdir/foo".into(),
                     description: "".to_string(),
                 },
                 Image {
-                    path: "subdir/bar".into(),
+                    filename: "subdir/bar".into(),
                     description: "".to_string(),
                 },
             ],
@@ -172,7 +172,7 @@ mod tests {
                 path: "deeper_subdir".into(),
                 description: "".to_string(),
                 images: vec![Image {
-                    path: "deeper_subdir/image.jpg".into(),
+                    filename: "deeper_subdir/image.jpg".into(),
                     description: "".to_string(),
                 }],
                 children: vec![],
@@ -188,7 +188,7 @@ mod tests {
 
         let imgs: HashSet<String> = ad
             .iter()
-            .map(|i| i.path.clone().to_str().unwrap().to_string())
+            .map(|i| i.filename.to_str().unwrap().to_string())
             .collect();
         let expected: HashSet<String> = [
             "foo",

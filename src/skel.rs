@@ -65,7 +65,7 @@ mod tests {
         let tmpdir = Temp::new_dir().unwrap();
         make_skeleton(&tmpdir).unwrap();
         assert!(tmpdir.join("photojawn.conf.yml").exists());
-        assert!(tmpdir.join("static/index.css").exists());
+        assert!(tmpdir.join("_static/index.css").exists());
         assert!(tmpdir.join("_templates/base.html").exists());
     }
 
