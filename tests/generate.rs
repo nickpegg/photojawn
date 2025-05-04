@@ -97,8 +97,12 @@ fn check_album(album_dir: PathBuf) -> anyhow::Result<()> {
             // - <image>.screen.<ext>
             // - <image>.thumb.<ext>
             for file in &files {
-                for ext in ["html", "screen.jpg", "thumb.jpg"] {
+                assert!(slides_path.join(file.with_extension("html")).exists());
+                for ext in ["screen.jpg", "thumb.jpg"] {
                     assert!(slides_path.join(file.with_extension(ext)).exists());
+
+                    // Make sure the screen/thumb is smaller than the original
+                    todo!();
                 }
             }
 
