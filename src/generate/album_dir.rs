@@ -1,7 +1,7 @@
+use anyhow::anyhow;
 use image::ImageReader;
-use std::ffi::OsString;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::slice::Iter;
 
 /// An album directory, which has images and possibly child albums
@@ -18,21 +18,20 @@ pub struct AlbumDir {
 
 impl AlbumDir {
     /// Returns an iterator over all images in the album and subalbums
-    fn iter(&self) -> AlbumIter {
+    pub fn iter(&self) -> AlbumIter {
         AlbumIter::new(self)
     }
-}
 
-impl TryFrom<&PathBuf> for AlbumDir {
-    type Error = anyhow::Error;
-
-    fn try_from(p: &PathBuf) -> anyhow::Result<AlbumDir> {
+    /// Create an AlbumDir recursively from a path. The root path is so that we can make every path
+    /// relative to the root.
+    fn from_path(p: &Path, root: &Path) -> anyhow::Result<Self> {
         let mut images = vec![];
         let mut children = vec![];
-        let mut description = "".to_string();
+        let mut description = String::new();
 
         for entry in p.read_dir()? {
-            let entry_path = entry?.path();
+            // use strip_prefix() to make the path relative to the root directory
+            let entry_path = entry?.path().strip_prefix(root)?.to_path_buf();
 
             if entry_path.is_file() {
                 if let Some(filename) = entry_path.file_name() {
@@ -56,6 +55,7 @@ impl TryFrom<&PathBuf> for AlbumDir {
                                 // TODO: render markdown
                                 todo!();
                             }
+
                             images.push(Image {
                                 path: entry_path,
                                 description,
@@ -81,7 +81,7 @@ impl TryFrom<&PathBuf> for AlbumDir {
         // Find all directories in directory and make AlbumDirs out of them,
         // but skip dirs known to have interesting stuff
         Ok(AlbumDir {
-            path: p.clone(),
+            path: p.strip_prefix(root)?.to_path_buf(),
             images,
             children,
             description,
@@ -89,11 +89,16 @@ impl TryFrom<&PathBuf> for AlbumDir {
     }
 }
 
-// TODO: from-path, find all images and children
+impl TryFrom<&PathBuf> for AlbumDir {
+    type Error = anyhow::Error;
+
+    fn try_from(p: &PathBuf) -> anyhow::Result<AlbumDir> {
+        AlbumDir::from_path(p, p)
+    }
+}
 
 /// An iterator which walks through all of the images in an album, and its sub-albums
-struct AlbumIter<'a> {
-    root_album: &'a AlbumDir,
+pub struct AlbumIter<'a> {
     image_iter: Box<dyn Iterator<Item = &'a Image> + 'a>,
     children_iter: Iter<'a, AlbumDir>,
 }
@@ -101,7 +106,6 @@ struct AlbumIter<'a> {
 impl<'a> AlbumIter<'a> {
     fn new(ad: &'a AlbumDir) -> Self {
         Self {
-            root_album: ad,
             image_iter: Box::new(ad.images.iter()),
             children_iter: ad.children.iter(),
         }
@@ -131,9 +135,50 @@ impl<'a> Iterator for AlbumIter<'a> {
 }
 
 #[derive(Clone, Hash, PartialEq, Eq)]
-struct Image {
-    path: PathBuf,
-    description: String,
+pub struct Image {
+    /// Path to the image, relative to the root album
+    pub path: PathBuf,
+
+    /// Text description of the image which is displayed below it on the HTML page
+    pub description: String,
+}
+
+impl Image {
+    pub fn thumb_path(&self) -> anyhow::Result<PathBuf> {
+        self.slide_path("thumb")
+    }
+
+    pub fn screen_path(&self) -> anyhow::Result<PathBuf> {
+        self.slide_path("screen")
+    }
+
+    /// Returns the path to the file in the slides dir with the given extention insert, e.g.
+    /// "thumb" or "display"
+    fn slide_path(&self, ext: &str) -> anyhow::Result<PathBuf> {
+        // TODO: Return path relative to the output dir?
+        let new_ext = match self.path.extension() {
+            Some(e) => {
+                ext.to_string()
+                    + "."
+                    + e.to_str().ok_or(anyhow!(
+                        "Image {} extension is not valid UTF-8",
+                        self.path.display()
+                    ))?
+            }
+            None => ext.to_string(),
+        };
+
+        let new_path = self.path.with_extension(new_ext);
+        let new_name = new_path
+            .file_name()
+            .ok_or(anyhow!("Image {} missing a file name", self.path.display()))?;
+        let parent = self
+            .path
+            .parent()
+            .ok_or(anyhow!("Image {} has no parent dir", self.path.display()))?;
+
+        Ok(parent.join("slides").join(new_name))
+    }
 }
 
 #[cfg(test)]
@@ -199,5 +244,21 @@ mod tests {
             "subdir/deeper_subdir/image.jpg",
         ]);
         assert_eq!(imgs, expected);
+    }
+
+    #[test]
+    fn image_paths() {
+        let img = Image {
+            path: PathBuf::from("foo/bar/image.jpg"),
+            description: String::new(),
+        };
+        assert_eq!(
+            img.thumb_path().unwrap(),
+            PathBuf::from("foo/bar/slides/image.thumb.jpg")
+        );
+        assert_eq!(
+            img.screen_path().unwrap(),
+            PathBuf::from("foo/bar/slides/image.screen.jpg")
+        );
     }
 }

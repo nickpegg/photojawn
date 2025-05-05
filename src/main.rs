@@ -15,7 +15,7 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::Generate { quick } => {
             println!("Generate, quick: {quick}");
-            generate(&album_path.to_path_buf());
+            generate(&album_path.to_path_buf())?;
         }
     }
 

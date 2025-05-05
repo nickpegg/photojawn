@@ -6,8 +6,11 @@ use std::path::PathBuf;
 #[derive(Deserialize, Debug, PartialEq)]
 #[serde(default)]
 pub struct Config {
+    /// Tuple of how big thumbnails should be - (width, height)
     pub thumbnail_size: (u32, u32),
+    /// Tuple of how big thumbnails should be - (width, height)
     pub view_size: (u32, u32),
+    /// Directory inside the album that the site should be output to
     pub output_dir: PathBuf,
 }
 

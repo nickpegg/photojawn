@@ -36,7 +36,7 @@ fn make_test_album() -> Temp {
                 let dest_path = tmpdir.join(&path_in_album);
                 fs::create_dir_all(dest_path.parent().unwrap()).unwrap();
                 fs::copy(&entry_path, &dest_path).unwrap();
-                log::debug!("{} -> {}", entry_path.display(), dest_path.display());
+                log::debug!("Copied {} -> {}", entry_path.display(), dest_path.display());
             }
         }
     }
@@ -52,7 +52,7 @@ fn check_album(album_dir: PathBuf) -> anyhow::Result<()> {
     while let Some(dir) = dirs.pop_front() {
         for entry in dir.read_dir().unwrap() {
             let path = entry.unwrap().path();
-            if path.is_dir() {
+            if path.is_dir() && !path.ends_with(Path::new("slides")) {
                 check_album(path.clone())?;
             }
             let files: Vec<PathBuf> = path
