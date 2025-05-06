@@ -1,6 +1,7 @@
 use anyhow::anyhow;
 use image::ImageReader;
 use serde::Serialize;
+use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::slice::Iter;
@@ -10,6 +11,7 @@ use std::slice::Iter;
 pub struct AlbumDir {
     pub path: PathBuf,
     pub images: Vec<Image>,
+    pub cover: Option<Image>,
     // TOOD: Remove the parent reference? Causes a lot of issues
     // parent: Option<Box<&'a AlbumDir>>,
     pub children: Vec<AlbumDir>,
@@ -27,6 +29,7 @@ impl AlbumDir {
     /// relative to the root.
     fn from_path(p: &Path, root: &Path) -> anyhow::Result<Self> {
         let mut images = vec![];
+        let mut cover: Option<Image> = None;
         let mut children = vec![];
         let mut description = String::new();
 
@@ -41,6 +44,11 @@ impl AlbumDir {
                         let _conents = fs::read_to_string(entry_path)?;
                         // TODO: render markdown
                         todo!();
+                    } else if filename.to_string_lossy().starts_with("cover") {
+                        cover = Some(Image::new(
+                            entry_path.strip_prefix(&root)?.to_path_buf(),
+                            String::new(),
+                        )?);
                     } else {
                         let reader = ImageReader::open(&entry_path)?.with_guessed_format()?;
                         if reader.format().is_some() {
@@ -56,10 +64,10 @@ impl AlbumDir {
                                 todo!();
                             }
 
-                            images.push(Image {
-                                path: entry_path.strip_prefix(&root)?.to_path_buf(),
+                            images.push(Image::new(
+                                entry_path.strip_prefix(&root)?.to_path_buf(),
                                 description,
-                            });
+                            )?);
                         }
                     }
                 }
@@ -78,11 +86,14 @@ impl AlbumDir {
             }
         }
 
-        // Find all directories in directory and make AlbumDirs out of them,
-        // but skip dirs known to have interesting stuff
+        if cover.is_none() && images.len() > 0 {
+            cover = Some(images[0].clone());
+        }
+
         Ok(AlbumDir {
             path: p.strip_prefix(root)?.to_path_buf(),
             images,
+            cover,
             children,
             description,
         })
@@ -141,40 +152,85 @@ pub struct Image {
 
     /// Text description of the image which is displayed below it on the HTML page
     pub description: String,
+
+    pub thumb_filename: OsString,
+    pub thumb_path: PathBuf,
+    pub screen_filename: OsString,
+    pub screen_path: PathBuf,
+    pub html_filename: OsString,
+    pub html_path: PathBuf,
 }
 
 impl Image {
-    pub fn thumb_path(&self) -> anyhow::Result<PathBuf> {
-        self.slide_path("thumb")
+    pub fn new(path: PathBuf, description: String) -> anyhow::Result<Self> {
+        let thumb_filename = Self::slide_filename(&path, "thumb", true)?;
+        let thumb_path = Self::slide_path(&path, "thumb")?;
+        let screen_filename = Self::slide_filename(&path, "screen", true)?;
+        let screen_path = Self::slide_path(&path, "screen")?;
+        // TODO: add "slides" in html path?
+        let html_filename = Self::slide_filename(&path, "html", false)?;
+        let html_path = path.with_extension("html");
+
+        Ok(Image {
+            path,
+            description,
+            thumb_filename,
+            thumb_path,
+            screen_filename,
+            screen_path,
+            html_filename,
+            html_path,
+        })
     }
 
-    pub fn screen_path(&self) -> anyhow::Result<PathBuf> {
-        self.slide_path("screen")
+    /// Returns the filename for a given slide type. For example if ext = "thumb" and the current
+    /// filename is "blah.jpg" this will return "blah.thumb.jpg". If keep_ext if false, it would
+    /// return "blah.thumb"
+    fn slide_filename(path: &PathBuf, ext: &str, keep_ext: bool) -> anyhow::Result<OsString> {
+        let mut new_ext: OsString = ext.into();
+        if keep_ext {
+            if let Some(e) = path.extension() {
+                new_ext = OsString::from(
+                    ext.to_string()
+                        + "."
+                        + e.to_str().ok_or(anyhow!(
+                            "Image {} extension is not valid UTF-8",
+                            path.display()
+                        ))?,
+                )
+            }
+        }
+
+        let new_path = path.with_extension(new_ext);
+        let new_name = new_path
+            .file_name()
+            .ok_or(anyhow!("Image {} missing a file name", path.display()))?;
+
+        Ok(new_name.into())
     }
 
     /// Returns the path to the file in the slides dir with the given extention insert, e.g.
     /// "thumb" or "display"
-    fn slide_path(&self, ext: &str) -> anyhow::Result<PathBuf> {
-        let new_ext = match self.path.extension() {
+    fn slide_path(path: &PathBuf, ext: &str) -> anyhow::Result<PathBuf> {
+        let new_ext = match path.extension() {
             Some(e) => {
                 ext.to_string()
                     + "."
                     + e.to_str().ok_or(anyhow!(
                         "Image {} extension is not valid UTF-8",
-                        self.path.display()
+                        path.display()
                     ))?
             }
             None => ext.to_string(),
         };
 
-        let new_path = self.path.with_extension(new_ext);
+        let new_path = path.with_extension(new_ext);
         let new_name = new_path
             .file_name()
-            .ok_or(anyhow!("Image {} missing a file name", self.path.display()))?;
-        let parent = self
-            .path
+            .ok_or(anyhow!("Image {} missing a file name", path.display()))?;
+        let parent = path
             .parent()
-            .ok_or(anyhow!("Image {} has no parent dir", self.path.display()))?;
+            .ok_or(anyhow!("Image {} has no parent dir", path.display()))?;
 
         Ok(parent.join("slides").join(new_name))
     }
@@ -190,15 +246,10 @@ mod tests {
         let mut ad = AlbumDir {
             path: "".into(),
             description: "".to_string(),
+            cover: Some(Image::new("foo".into(), "".to_string()).unwrap()),
             images: vec![
-                Image {
-                    path: "foo".into(),
-                    description: "".to_string(),
-                },
-                Image {
-                    path: "bar".into(),
-                    description: "".to_string(),
-                },
+                Image::new("foo".into(), "".to_string()).unwrap(),
+                Image::new("bar".into(), "".to_string()).unwrap(),
             ],
             children: vec![],
         };
@@ -206,29 +257,27 @@ mod tests {
         ad.children.push(AlbumDir {
             path: "subdir".into(),
             description: "".to_string(),
+            cover: Some(Image::new("subdir/foo".into(), "".to_string()).unwrap()),
             images: vec![
-                Image {
-                    path: "subdir/foo".into(),
-                    description: "".to_string(),
-                },
-                Image {
-                    path: "subdir/bar".into(),
-                    description: "".to_string(),
-                },
+                Image::new("subdir/foo".into(), "".to_string()).unwrap(),
+                Image::new("subdir/bar".into(), "".to_string()).unwrap(),
             ],
             children: vec![AlbumDir {
                 path: "subdir/deeper_subdir".into(),
                 description: "".to_string(),
-                images: vec![Image {
-                    path: "subdir/deeper_subdir/image.jpg".into(),
-                    description: "".to_string(),
-                }],
+                cover: Some(
+                    Image::new("subdir/deeper_subdir/image.jpg".into(), "".to_string()).unwrap(),
+                ),
+                images: vec![
+                    Image::new("subdir/deeper_subdir/image.jpg".into(), String::new()).unwrap(),
+                ],
                 children: vec![],
             }],
         });
         // A child album with no images
         ad.children.push(AlbumDir {
             description: "".to_string(),
+            cover: None,
             path: "another_subdir".into(),
             images: vec![],
             children: vec![],
@@ -247,16 +296,13 @@ mod tests {
 
     #[test]
     fn image_paths() {
-        let img = Image {
-            path: PathBuf::from("foo/bar/image.jpg"),
-            description: String::new(),
-        };
+        let img = Image::new(PathBuf::from("foo/bar/image.jpg"), String::new()).unwrap();
         assert_eq!(
-            img.thumb_path().unwrap(),
+            img.thumb_path,
             PathBuf::from("foo/bar/slides/image.thumb.jpg")
         );
         assert_eq!(
-            img.screen_path().unwrap(),
+            img.screen_path,
             PathBuf::from("foo/bar/slides/image.screen.jpg")
         );
     }

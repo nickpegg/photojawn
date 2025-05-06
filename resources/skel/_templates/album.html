@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 
 {% block content %}
-    {% if not album_dir.is_root %}
+    {% if root_path %}
     <h1>
         <a href="{{root_path}}">Home</a>
-        {% for href, name in breadcrumbs %}
-        / <a href="{{href}}">{{name}}</a>
+        {% for crumb in breadcrumbs %}
+        / <a href="{{crumb.path}}">{{crumb.name}}</a>
         {% endfor %}
-        / {{album_dir.path.name}}
+        / {{name}}
     </h1>
     <hr>
     {% endif %}
@@ -18,20 +18,18 @@
     </div>
     {% endif %}
 
-    {% if album_dir.children %}
+    {% if children %}
         <h2>Albums</h2>
         <div id="album-children">
-            {% for child in album_dir.children %}
+            {% for child in children %}
                 <div class="album">
-                    <a href="{{child.path.name}}/">
+                    <a href="{{child.name}}/">
                         <div>
-                        {% if child.cover_path %}
                         <img
-                        src="{{child.cover_path.path.parent.relative_to(album_dir.path)}}/slides/{{child.cover_path.thumbnail_filename()}}" />
-                        {% endif %}
+                        src="{{child.cover_thumbnail_path}}" />
                         </div>
                         <div>
-                        {{child.path.name}}
+                        {{child.name}}
                         </div>
                     </a>
                 </div>
@@ -39,14 +37,14 @@
         </div>
     {% endif %}
     {% if album_dir.images %}
-        {% if album_dir.children %}
+        {% if children %}
         <h2>Photos</h2>
         {% endif %}
         <div id="album-photos">
             {% for image in album_dir.images %}
                 <div class="thumbnail">
-                    <a href="slides/{{image.html_filename()}}">
-                        <img src="slides/{{image.thumbnail_filename()}}" />
+                    <a href="slides/{{image.html_filename}}">
+                        <img src="slides/{{image.thumb_filename}}" />
                     </a>
                 </div>
             {% endfor %}

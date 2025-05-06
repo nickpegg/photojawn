@@ -24,7 +24,7 @@ lint:
 	cargo clippy
 
 test:
-	RUST_BACKTRACE=1 cargo test
+	RUST_BACKTRACE=1 cargo test --release
 
 
 test-watch:

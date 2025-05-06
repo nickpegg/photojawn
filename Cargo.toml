@@ -15,6 +15,7 @@ image = "^0.25.6"
 log = "^0.4.27"
 serde = { version = "^1.0", features = ["derive"] }
 serde_yml = "^0.0.12"
+tera = { version = "^1.20", default-features = false }
 thiserror = "^2.0"
 
 [dev-dependencies]

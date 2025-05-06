@@ -1,9 +1,9 @@
 use anyhow::Context;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-#[derive(Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(default)]
 pub struct Config {
     /// Tuple of how big thumbnails should be - (width, height)

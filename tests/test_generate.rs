@@ -2,7 +2,8 @@
 // orrrr make a function in our CLI which does everything and test _that_
 use mktemp::Temp;
 use photojawn::generate::generate;
-use std::collections::VecDeque;
+use photojawn::skel::make_skeleton;
+use std::collections::{HashSet, VecDeque};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -25,6 +26,8 @@ fn make_test_album() -> Temp {
     let tmpdir = Temp::new_dir().unwrap();
     let source_path = Path::new("resources/test_album");
 
+    make_skeleton(&tmpdir.to_path_buf()).unwrap();
+
     let mut dirs: VecDeque<PathBuf> = VecDeque::from([source_path.to_path_buf()]);
     while let Some(dir) = dirs.pop_front() {
         for entry in dir.read_dir().unwrap() {
@@ -46,7 +49,10 @@ fn make_test_album() -> Temp {
 
 /// Does basic sanity checks on an output album
 fn check_album(album_dir: PathBuf) -> anyhow::Result<()> {
-    log::debug!("Checking dir {}", album_dir.display());
+    log::debug!("Checking album dir {}", album_dir.display());
+
+    // The _static dir should have gotten copied into <output>/static
+    assert!(album_dir.join("static/index.css").exists());
 
     let mut dirs: VecDeque<PathBuf> = VecDeque::from([album_dir]);
     while let Some(dir) = dirs.pop_front() {
@@ -91,6 +97,10 @@ fn check_album(album_dir: PathBuf) -> anyhow::Result<()> {
             // There should be a slides dir
             let slides_path = path.join("slides");
             assert!(slides_path.is_dir());
+
+            // No two images should have the same path
+            let image_set: HashSet<&PathBuf> = files.iter().collect();
+            assert_eq!(image_set.len(), files.len());
 
             // For each image in the album (including the cover), in slides there should be a:
             // - <image>.html
