@@ -1,11 +1,12 @@
 use anyhow::anyhow;
 use image::ImageReader;
+use serde::Serialize;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::slice::Iter;
 
 /// An album directory, which has images and possibly child albums
-#[derive(Clone)]
+#[derive(Clone, Serialize)]
 pub struct AlbumDir {
     pub path: PathBuf,
     pub images: Vec<Image>,
@@ -30,8 +31,7 @@ impl AlbumDir {
         let mut description = String::new();
 
         for entry in p.read_dir()? {
-            // use strip_prefix() to make the path relative to the root directory
-            let entry_path = entry?.path().strip_prefix(root)?.to_path_buf();
+            let entry_path = entry?.path().to_path_buf();
 
             if entry_path.is_file() {
                 if let Some(filename) = entry_path.file_name() {
@@ -57,7 +57,7 @@ impl AlbumDir {
                             }
 
                             images.push(Image {
-                                path: entry_path,
+                                path: entry_path.strip_prefix(&root)?.to_path_buf(),
                                 description,
                             });
                         }
@@ -73,7 +73,7 @@ impl AlbumDir {
                         continue;
                     }
 
-                    children.push(AlbumDir::try_from(&entry_path)?);
+                    children.push(AlbumDir::from_path(&entry_path, &root)?);
                 }
             }
         }
@@ -134,7 +134,7 @@ impl<'a> Iterator for AlbumIter<'a> {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq, Serialize)]
 pub struct Image {
     /// Path to the image, relative to the root album
     pub path: PathBuf,
@@ -155,7 +155,6 @@ impl Image {
     /// Returns the path to the file in the slides dir with the given extention insert, e.g.
     /// "thumb" or "display"
     fn slide_path(&self, ext: &str) -> anyhow::Result<PathBuf> {
-        // TODO: Return path relative to the output dir?
         let new_ext = match self.path.extension() {
             Some(e) => {
                 ext.to_string()
