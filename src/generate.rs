@@ -183,11 +183,6 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     // Queue of album dir and depth (distance from root AlbumDir)
     let mut dir_queue: VecDeque<&AlbumDir> = VecDeque::from([album]);
     while let Some(album) = dir_queue.pop_front() {
-        // TODO: create AlbumContext from AlbumDir - TryFrom<&AlbumDir> ?
-        // TODO: make a function to figure out the cover image and cover_thumbnail_path for each
-        // albumdir
-        // TODO: Move breadcrumb generation into From thing?
-
         let html_path = output_path.join(&album.path).join("index.html");
         log::info!("Rendering album {}", html_path.display());
         let ctx = AlbumContext::try_from(album)?;
