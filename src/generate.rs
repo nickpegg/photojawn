@@ -150,6 +150,8 @@ fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     for img in album.iter() {
         let orig_image = image::open(&img.path)?;
 
+        // TODO: If orig_path is the same as the original image, and quick mode is on, skip to next
+        // image
         let orig_path = output_path.join(&img.path);
         log::info!(
             "Copying original {} -> {}",
@@ -174,7 +176,6 @@ fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
             )
             .save(&thumb_path)?;
 
-        // TODO: resize to screen size
         let screen_path = output_path.join(&img.screen_path);
         log::info!(
             "Resizing {} -> {}",
