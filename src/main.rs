@@ -14,8 +14,8 @@ fn main() -> anyhow::Result<()> {
             println!("Album created in {}", album_path.display());
         }
         Commands::Generate { quick } => {
-            println!("Generate, quick: {quick}");
-            generate(&album_path.to_path_buf())?;
+            let path = generate(&album_path.to_path_buf())?;
+            println!("Album site generated in {}", path.display());
         }
     }
 

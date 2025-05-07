@@ -45,12 +45,14 @@ impl AlbumDir {
                         let _conents = fs::read_to_string(entry_path)?;
                         // TODO: render markdown
                         todo!();
-                    } else if filename.to_string_lossy().starts_with("cover") {
-                        cover = Some(Image::new(
-                            entry_path.strip_prefix(&root)?.to_path_buf(),
-                            String::new(),
-                        )?);
                     } else {
+                        if filename.to_string_lossy().starts_with("cover") {
+                            cover = Some(Image::new(
+                                entry_path.strip_prefix(&root)?.to_path_buf(),
+                                String::new(),
+                            )?);
+                        }
+
                         let reader = ImageReader::open(&entry_path)?.with_guessed_format()?;
                         if reader.format().is_some() {
                             // Found an image

@@ -3,7 +3,6 @@
 {% block content %}
     {% if root_path %}
     <h1>
-        <a href="{{root_path}}">Home</a>
         {% for crumb in breadcrumbs %}
         / <a href="{{crumb.path}}">{{crumb.name}}</a>
         {% endfor %}
@@ -12,9 +11,9 @@
     <hr>
     {% endif %}
 
-    {% if album_dir.description %}
+    {% if description %}
     <div class="caption">
-    {{ album_dir.description | safe }}
+    {{ description | safe }}
     </div>
     {% endif %}
 
@@ -26,7 +25,7 @@
                     <a href="{{child.name}}/">
                         <div>
                         <img
-                        src="{{child.cover_thumbnail_path}}" />
+                            src="{{child.name}}/{{child.cover_thumbnail_path}}" />
                         </div>
                         <div>
                         {{child.name}}

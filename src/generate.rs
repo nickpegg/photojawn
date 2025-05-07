@@ -7,7 +7,7 @@ use image::imageops::FilterType;
 use serde::Serialize;
 use std::collections::VecDeque;
 use std::env;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
 use tera::Tera;
@@ -17,7 +17,7 @@ const IMG_RESIZE_FILTER: FilterType = FilterType::Lanczos3;
 #[derive(Serialize, Debug)]
 struct Breadcrumb {
     path: PathBuf,
-    name: OsString,
+    name: String,
 }
 
 /// A Tera context for album pages
@@ -26,15 +26,13 @@ struct AlbumContext {
     // Path required to get back to the root album
     root_path: PathBuf,
 
-    // TODO: Do we actualy need the whole albumDir? Probably better off pulling data we need out of
-    // it.
-    // album_dir: AlbumDir,
-    name: OsString,
+    name: String,
+    description: String,
 
     // TODO: images
 
-    // Path to the cover image thumbnail within /slides/. Used when linking to an album from a
-    // parent album
+    // Path to the cover image thumbnail within /slides/, relative to the album dir. Used when
+    // linking to an album from a parent album
     cover_thumbnail_path: PathBuf,
 
     // list of:
@@ -50,9 +48,9 @@ impl TryFrom<&AlbumDir> for AlbumContext {
     type Error = anyhow::Error;
 
     fn try_from(album: &AlbumDir) -> anyhow::Result<Self> {
-        let name: OsString = match album.path.file_name() {
-            Some(n) => n.to_os_string(),
-            None => OsString::new(),
+        let name: String = match album.path.file_name() {
+            Some(n) => n.to_string_lossy().to_string(),
+            None => String::new(),
         };
 
         // Build breadcrumbs
@@ -65,7 +63,7 @@ impl TryFrom<&AlbumDir> for AlbumContext {
                 relpath.push("..");
                 breadcrumbs.push(Breadcrumb {
                     path: relpath.clone(),
-                    name: filename.into(),
+                    name: filename.to_string_lossy().to_string(),
                 });
             }
         }
@@ -81,7 +79,7 @@ impl TryFrom<&AlbumDir> for AlbumContext {
 
         // Pick a cover image thumbnail and build a path to it
         let cover_thumbnail_path = match &album.cover {
-            Some(i) => i.path.clone(),
+            Some(i) => Path::new("slides").join(&i.thumb_filename),
             None => PathBuf::from(""),
         };
 
@@ -93,6 +91,7 @@ impl TryFrom<&AlbumDir> for AlbumContext {
 
         Ok(AlbumContext {
             name,
+            description: album.description.clone(),
             breadcrumbs,
             root_path,
             children,
@@ -121,7 +120,7 @@ pub fn generate(root_path: &PathBuf) -> anyhow::Result<PathBuf> {
     env::set_current_dir(root_path)?;
     let album = AlbumDir::try_from(root_path)?;
 
-    fs::create_dir(&config.output_dir)?;
+    fs::create_dir_all(&config.output_dir)?;
     copy_static(&config)?;
     generate_images(&config, &album)?;
     generate_html(&config, &album)?;
@@ -136,7 +135,9 @@ fn copy_static(config: &Config) -> anyhow::Result<()> {
     fs_extra::dir::copy(
         "_static",
         dst,
-        &fs_extra::dir::CopyOptions::new().content_only(true),
+        &fs_extra::dir::CopyOptions::new()
+            .content_only(true)
+            .overwrite(true),
     )?;
     Ok(())
 }
