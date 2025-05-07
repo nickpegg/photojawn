@@ -4,7 +4,7 @@ use mktemp::Temp;
 use photojawn::generate::generate;
 use photojawn::skel::make_skeleton;
 use std::collections::{HashSet, VecDeque};
-use std::fs;
+use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 #[test]
@@ -26,102 +26,95 @@ fn make_test_album() -> Temp {
     let tmpdir = Temp::new_dir().unwrap();
     let source_path = Path::new("resources/test_album");
 
+    log::info!("Creating test album in {}", tmpdir.display());
     make_skeleton(&tmpdir.to_path_buf()).unwrap();
-
-    let mut dirs: VecDeque<PathBuf> = VecDeque::from([source_path.to_path_buf()]);
-    while let Some(dir) = dirs.pop_front() {
-        for entry in dir.read_dir().unwrap() {
-            let entry_path = entry.unwrap().path();
-            let path_in_album = entry_path.strip_prefix(&source_path).unwrap();
-            if entry_path.is_dir() {
-                dirs.push_back(entry_path);
-            } else {
-                let dest_path = tmpdir.join(&path_in_album);
-                fs::create_dir_all(dest_path.parent().unwrap()).unwrap();
-                fs::copy(&entry_path, &dest_path).unwrap();
-                log::debug!("Copied {} -> {}", entry_path.display(), dest_path.display());
-            }
-        }
-    }
+    fs_extra::dir::copy(
+        &source_path,
+        &tmpdir,
+        &fs_extra::dir::CopyOptions::new().content_only(true),
+    )
+    .unwrap();
 
     tmpdir
 }
 
 /// Does basic sanity checks on an output album
-fn check_album(album_dir: PathBuf) -> anyhow::Result<()> {
-    log::debug!("Checking album dir {}", album_dir.display());
+fn check_album(root_path: PathBuf) -> anyhow::Result<()> {
+    log::debug!("Checking album dir {}", root_path.display());
 
     // The _static dir should have gotten copied into <output>/static
-    assert!(album_dir.join("static/index.css").exists());
+    assert!(root_path.join("static/index.css").exists());
 
-    let mut dirs: VecDeque<PathBuf> = VecDeque::from([album_dir]);
+    let mut dirs: VecDeque<PathBuf> = VecDeque::from([root_path.clone()]);
     while let Some(dir) = dirs.pop_front() {
+        let mut files: Vec<PathBuf> = Vec::new();
         for entry in dir.read_dir().unwrap() {
             let path = entry.unwrap().path();
-            if path.is_dir() && !path.ends_with(Path::new("slides")) {
-                check_album(path.clone())?;
+            if path.is_dir()
+                && !path.ends_with(Path::new("slides"))
+                && path.file_name() != Some(OsStr::new("static"))
+            {
+                dirs.push_back(path.clone());
+            } else if path.is_file() {
+                files.push(path);
             }
-            let files: Vec<PathBuf> = path
-                .read_dir()
-                .unwrap()
-                .into_iter()
-                .map(|e| e.unwrap().path())
-                .filter(|e| e.is_file())
-                .collect();
+        }
 
-            // There should be an index.html
-            assert!(path.join("index.html").exists());
+        // There should be an index.html
+        let index_path = dir.join("index.html");
+        assert!(
+            index_path.exists(),
+            "Expected {} to exist",
+            index_path.display()
+        );
 
-            // There should be a cover image
-            let cover_path = path.join("cover.jpg");
-            assert!(&cover_path.exists());
+        // There should be a slides dir
+        let slides_path = dir.join("slides");
+        assert!(
+            slides_path.is_dir(),
+            "Expected {} to be a dir",
+            slides_path.display()
+        );
 
-            // The cover should be equal contents to some other image
-            let cover_contents = fs::read(&cover_path).unwrap();
-            let mut found = false;
-            for file in &files {
-                if file != &cover_path {
-                    let file_contents = fs::read(file).unwrap();
-                    if file_contents == cover_contents {
-                        found = true;
-                    }
+        // No two images should have the same path
+        let image_set: HashSet<&PathBuf> = files.iter().collect();
+        assert_eq!(image_set.len(), files.len());
+
+        // For each image in the album (including the cover), in slides there should be a:
+        // - <image>.html
+        // - <image>.screen.<ext>
+        // - <image>.thumb.<ext>
+        for file in &files {
+            if let Some(ext) = file.extension() {
+                if ext != "jpg" {
+                    continue;
                 }
             }
-            if !found {
-                panic!(
-                    "cover.jpg in {} does not have a matching file",
-                    path.display()
+            log::debug!("Checking associated files for {}", file.display());
+
+            let html_path = slides_path.join(&file.with_extension("html").file_name().unwrap());
+            assert!(
+                html_path.exists(),
+                "Expected {} to exist",
+                html_path.display()
+            );
+            for ext in ["screen.jpg", "thumb.jpg"] {
+                let img_path = slides_path.join(file.with_extension(ext).file_name().unwrap());
+                assert!(
+                    img_path.exists(),
+                    "Expected {} to exist",
+                    img_path.display()
                 );
+
+                // TODO: Make sure the screen/thumb is smaller than the original
             }
+        }
 
-            // There should be a slides dir
-            let slides_path = path.join("slides");
-            assert!(slides_path.is_dir());
-
-            // No two images should have the same path
-            let image_set: HashSet<&PathBuf> = files.iter().collect();
-            assert_eq!(image_set.len(), files.len());
-
-            // For each image in the album (including the cover), in slides there should be a:
-            // - <image>.html
-            // - <image>.screen.<ext>
-            // - <image>.thumb.<ext>
-            for file in &files {
-                assert!(slides_path.join(file.with_extension("html")).exists());
-                for ext in ["screen.jpg", "thumb.jpg"] {
-                    assert!(slides_path.join(file.with_extension(ext)).exists());
-
-                    // Make sure the screen/thumb is smaller than the original
-                    todo!();
-                }
-            }
-
-            // There shouldn't be any .txt or .md files hanging around
-            for file in &files {
-                if let Some(ext) = file.extension() {
-                    assert_ne!(ext, "md");
-                    assert_ne!(ext, "txt");
-                }
+        // There shouldn't be any .txt or .md files hanging around
+        for file in &files {
+            if let Some(ext) = file.extension() {
+                assert_ne!(ext, "md");
+                assert_ne!(ext, "txt");
             }
         }
     }

@@ -102,13 +102,14 @@ impl TryFrom<&AlbumDir> for AlbumContext {
 }
 
 /// A Tera context for slide (individual image) pages
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 struct SlideContext {
     // TODO: Path or String?
+    // Path required to get back to the root album
     root_path: PathBuf,
     image: Image,
-    prev_image: Image,
-    next_image: Image,
+    prev_image: Option<Image>,
+    next_image: Option<Image>,
 }
 
 pub fn generate(root_path: &PathBuf) -> anyhow::Result<PathBuf> {
@@ -120,6 +121,7 @@ pub fn generate(root_path: &PathBuf) -> anyhow::Result<PathBuf> {
     env::set_current_dir(root_path)?;
     let album = AlbumDir::try_from(root_path)?;
 
+    fs::create_dir(&config.output_dir)?;
     copy_static(&config)?;
     generate_images(&config, &album)?;
     generate_html(&config, &album)?;
@@ -129,6 +131,13 @@ pub fn generate(root_path: &PathBuf) -> anyhow::Result<PathBuf> {
 }
 
 fn copy_static(config: &Config) -> anyhow::Result<()> {
+    let dst = &config.output_dir.join("static");
+    log::info!("Copying static files from _static to {}", dst.display());
+    fs_extra::dir::copy(
+        "_static",
+        dst,
+        &fs_extra::dir::CopyOptions::new().content_only(true),
+    )?;
     Ok(())
 }
 
@@ -138,6 +147,15 @@ fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     // TODO: progress bar ?
     for img in album.iter() {
         let orig_image = image::open(&img.path)?;
+
+        let orig_path = output_path.join(&img.path);
+        log::info!(
+            "Copying original {} -> {}",
+            img.path.display(),
+            orig_path.display()
+        );
+        fs::create_dir_all(orig_path.parent().unwrap_or(Path::new("")))?;
+        orig_image.save(&orig_path)?;
 
         let thumb_path = output_path.join(&img.thumb_path);
         log::info!(
@@ -180,7 +198,6 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
             .ok_or(anyhow!("Missing _templates dir in album dir"))?,
     )?;
 
-    // Queue of album dir and depth (distance from root AlbumDir)
     let mut dir_queue: VecDeque<&AlbumDir> = VecDeque::from([album]);
     while let Some(album) = dir_queue.pop_front() {
         let html_path = output_path.join(&album.path).join("index.html");
@@ -195,6 +212,38 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
         for child in album.children.iter() {
             dir_queue.push_back(&child);
         }
+    }
+
+    let all_images: Vec<&Image> = album.iter().collect();
+    for (pos, img) in all_images.iter().enumerate() {
+        let img: &Image = *img;
+        let prev_image: Option<&Image> = match pos {
+            0 => None,
+            n => Some(&all_images[n - 1]),
+        };
+        let next_image: Option<&Image> = all_images.get(pos + 1).map(|i| *i);
+
+        // Find the path to the root by counting the parts of the path
+        let mut path_to_root = PathBuf::new();
+        if let Some(parent) = img.path.parent() {
+            let mut parent = parent.to_path_buf();
+            while parent.pop() {
+                path_to_root = path_to_root.join("..");
+            }
+        }
+
+        log::info!("Rendering image {}", img.html_path.display());
+        let ctx = SlideContext {
+            root_path: path_to_root,
+            image: img.clone(),
+            prev_image: prev_image.cloned(),
+            next_image: next_image.cloned(),
+        };
+        log::debug!("Image context: {ctx:?}");
+        fs::write(
+            output_path.join(&img.html_path),
+            tera.render("photo.html", &tera::Context::from_serialize(&ctx)?)?,
+        )?;
     }
 
     Ok(())

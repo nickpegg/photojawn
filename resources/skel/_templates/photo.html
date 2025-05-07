@@ -17,7 +17,7 @@
 
 {% block content %}
 <div id="photo">
-    <img src="{{image_path.screen_path}}" />
+    <img src="{{image.screen_path}}" />
 </div>
 
 <div id="nav">
@@ -43,12 +43,12 @@
 </div>
 
 <div id="photo-description" class="caption">
-    {% if image_path.description %}
-    {{ image_path.description | safe }}
+    {% if image.description %}
+    {{ image.description | safe }}
     {% endif %}
 </div>
 
 <div id="download">
-    <a href="../{{image_path.path.name}}">view full size</a>
+    <a href="../{{image.filename}}">view full size</a>
 </div>
 {% endblock %}

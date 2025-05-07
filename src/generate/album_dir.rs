@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use image::ImageReader;
 use serde::Serialize;
-use std::ffi::OsString;
+use std::ffi::{OsStr, OsString};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::slice::Iter;
@@ -21,6 +21,7 @@ pub struct AlbumDir {
 
 impl AlbumDir {
     /// Returns an iterator over all images in the album and subalbums
+    // TODO: Rename to iter_images() and make separate one for dirs?
     pub fn iter(&self) -> AlbumIter {
         AlbumIter::new(self)
     }
@@ -145,10 +146,11 @@ impl<'a> Iterator for AlbumIter<'a> {
     }
 }
 
-#[derive(Clone, Hash, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Hash, PartialEq, Eq, Serialize)]
 pub struct Image {
     /// Path to the image, relative to the root album
     pub path: PathBuf,
+    pub filename: OsString,
 
     /// Text description of the image which is displayed below it on the HTML page
     pub description: String,
@@ -163,17 +165,25 @@ pub struct Image {
 
 impl Image {
     pub fn new(path: PathBuf, description: String) -> anyhow::Result<Self> {
+        let filename = path
+            .file_name()
+            .ok_or(anyhow!(
+                "Image path {} is missing a filename",
+                path.display()
+            ))?
+            .into();
         let thumb_filename = Self::slide_filename(&path, "thumb", true)?;
-        let thumb_path = Self::slide_path(&path, "thumb")?;
+        let thumb_path = Self::slide_path(&path, &thumb_filename);
         let screen_filename = Self::slide_filename(&path, "screen", true)?;
-        let screen_path = Self::slide_path(&path, "screen")?;
+        let screen_path = Self::slide_path(&path, &screen_filename);
         // TODO: add "slides" in html path?
         let html_filename = Self::slide_filename(&path, "html", false)?;
-        let html_path = path.with_extension("html");
+        let html_path = Self::slide_path(&path, &html_filename);
 
         Ok(Image {
             path,
             description,
+            filename,
             thumb_filename,
             thumb_path,
             screen_filename,
@@ -209,30 +219,13 @@ impl Image {
         Ok(new_name.into())
     }
 
-    /// Returns the path to the file in the slides dir with the given extention insert, e.g.
-    /// "thumb" or "display"
-    fn slide_path(path: &PathBuf, ext: &str) -> anyhow::Result<PathBuf> {
-        let new_ext = match path.extension() {
-            Some(e) => {
-                ext.to_string()
-                    + "."
-                    + e.to_str().ok_or(anyhow!(
-                        "Image {} extension is not valid UTF-8",
-                        path.display()
-                    ))?
-            }
-            None => ext.to_string(),
-        };
-
-        let new_path = path.with_extension(new_ext);
-        let new_name = new_path
-            .file_name()
-            .ok_or(anyhow!("Image {} missing a file name", path.display()))?;
-        let parent = path
-            .parent()
-            .ok_or(anyhow!("Image {} has no parent dir", path.display()))?;
-
-        Ok(parent.join("slides").join(new_name))
+    /// Returns the path to the file in the slides dir given the path to the original image
+    fn slide_path(path: &PathBuf, file_name: &OsStr) -> PathBuf {
+        let mut new_path = path.clone();
+        new_path.pop();
+        new_path.push("slides");
+        new_path.push(&file_name);
+        new_path
     }
 }
 
