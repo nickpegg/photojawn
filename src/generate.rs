@@ -105,7 +105,6 @@ impl TryFrom<&AlbumDir> for AlbumContext {
 /// A Tera context for slide (individual image) pages
 #[derive(Serialize, Debug)]
 struct SlideContext {
-    // TODO: Path or String?
     // Path required to get back to the root album
     root_path: PathBuf,
     image: Image,
@@ -215,38 +214,37 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
         for child in album.children.iter() {
             dir_queue.push_back(&child);
         }
-    }
 
-    let all_images: Vec<&Image> = album.iter().collect();
-    for (pos, img) in all_images.iter().enumerate() {
-        let img: &Image = *img;
-        let prev_image: Option<&Image> = match pos {
-            0 => None,
-            n => Some(&all_images[n - 1]),
-        };
-        let next_image: Option<&Image> = all_images.get(pos + 1).map(|i| *i);
+        for (pos, img) in album.images.iter().enumerate() {
+            let prev_image: Option<&Image> = match pos {
+                0 => None,
+                n => Some(&album.images[n - 1]),
+            };
+            let next_image: Option<&Image> = album.images.get(pos + 1);
 
-        // Find the path to the root by counting the parts of the path
-        let mut path_to_root = PathBuf::new();
-        if let Some(parent) = img.path.parent() {
-            let mut parent = parent.to_path_buf();
-            while parent.pop() {
-                path_to_root = path_to_root.join("..");
+            // Find the path to the root by counting the parts of the path
+            // Start with 1 .. to get out of the slides dir
+            let mut path_to_root = PathBuf::from("..");
+            if let Some(parent) = img.path.parent() {
+                let mut parent = parent.to_path_buf();
+                while parent.pop() {
+                    path_to_root.push("..");
+                }
             }
-        }
 
-        log::info!("Rendering image {}", img.html_path.display());
-        let ctx = SlideContext {
-            root_path: path_to_root,
-            image: img.clone(),
-            prev_image: prev_image.cloned(),
-            next_image: next_image.cloned(),
-        };
-        log::debug!("Image context: {ctx:?}");
-        fs::write(
-            output_path.join(&img.html_path),
-            tera.render("photo.html", &tera::Context::from_serialize(&ctx)?)?,
-        )?;
+            log::info!("Rendering image {}", img.html_path.display());
+            let ctx = SlideContext {
+                root_path: path_to_root,
+                image: img.clone(),
+                prev_image: prev_image.cloned(),
+                next_image: next_image.cloned(),
+            };
+            log::debug!("Image context: {ctx:?}");
+            fs::write(
+                output_path.join(&img.html_path),
+                tera.render("photo.html", &tera::Context::from_serialize(&ctx)?)?,
+            )?;
+        }
     }
 
     Ok(())

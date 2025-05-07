@@ -59,10 +59,11 @@ impl AlbumDir {
                             let mut description = String::new();
 
                             // Read in any associated description file
-                            if entry_path.with_extension(".txt").exists() {
-                                description = fs::read_to_string(&entry_path)?;
-                            } else if entry_path.with_extension(".md").exists() {
-                                let _contents = fs::read(entry_path)?;
+                            if entry_path.with_extension("txt").exists() {
+                                description =
+                                    fs::read_to_string(&entry_path.with_extension("txt"))?;
+                            } else if entry_path.with_extension("md").exists() {
+                                let _contents = fs::read(&entry_path.with_extension("md"))?;
                                 // TODO: render markdown
                                 todo!();
                             }
