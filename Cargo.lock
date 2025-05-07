@@ -881,6 +881,7 @@ dependencies = [
  "image",
  "log",
  "mktemp",
+ "rayon",
  "serde",
  "serde_yml",
  "tera",

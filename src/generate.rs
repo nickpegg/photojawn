@@ -4,6 +4,7 @@ use crate::config::Config;
 use album_dir::{AlbumDir, Image};
 use anyhow::anyhow;
 use image::imageops::FilterType;
+use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::VecDeque;
 use std::env;
@@ -145,9 +146,9 @@ fn copy_static(config: &Config) -> anyhow::Result<()> {
 
 fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     let output_path = album.path.join(&config.output_dir);
-    // TODO: use par_iter() ?
     // TODO: progress bar ?
-    for img in album.iter_all_images() {
+    let all_images: Vec<&Image> = album.iter_all_images().collect();
+    all_images.par_iter().try_for_each(|img| {
         let orig_image = image::open(&img.path)?;
 
         // TODO: If orig_path is the same as the original image, and quick mode is on, skip to next
@@ -186,9 +187,9 @@ fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
         orig_image
             .resize(config.view_size.0, config.view_size.1, IMG_RESIZE_FILTER)
             .save(&screen_path)?;
-    }
 
-    Ok(())
+        Ok(())
+    })
 }
 
 fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
