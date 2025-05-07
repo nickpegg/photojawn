@@ -12,18 +12,16 @@ pub struct AlbumDir {
     pub path: PathBuf,
     pub images: Vec<Image>,
     pub cover: Option<Image>,
-    // TOOD: Remove the parent reference? Causes a lot of issues
-    // parent: Option<Box<&'a AlbumDir>>,
     pub children: Vec<AlbumDir>,
 
     pub description: String,
 }
 
 impl AlbumDir {
+    // TODO: Add iterator over image dirs
     /// Returns an iterator over all images in the album and subalbums
-    // TODO: Rename to iter_images() and make separate one for dirs?
-    pub fn iter(&self) -> AlbumIter {
-        AlbumIter::new(self)
+    pub fn iter_all_images(&self) -> AlbumImageIter {
+        AlbumImageIter::new(self)
     }
 
     /// Create an AlbumDir recursively from a path. The root path is so that we can make every path
@@ -112,12 +110,12 @@ impl TryFrom<&PathBuf> for AlbumDir {
 }
 
 /// An iterator which walks through all of the images in an album, and its sub-albums
-pub struct AlbumIter<'a> {
+pub struct AlbumImageIter<'a> {
     image_iter: Box<dyn Iterator<Item = &'a Image> + 'a>,
     children_iter: Iter<'a, AlbumDir>,
 }
 
-impl<'a> AlbumIter<'a> {
+impl<'a> AlbumImageIter<'a> {
     fn new(ad: &'a AlbumDir) -> Self {
         Self {
             image_iter: Box::new(ad.images.iter()),
@@ -126,7 +124,7 @@ impl<'a> AlbumIter<'a> {
     }
 }
 
-impl<'a> Iterator for AlbumIter<'a> {
+impl<'a> Iterator for AlbumImageIter<'a> {
     type Item = &'a Image;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -136,7 +134,7 @@ impl<'a> Iterator for AlbumIter<'a> {
 
         for album in self.children_iter.by_ref() {
             // Set the child album as the current image iterator
-            self.image_iter = Box::new(album.iter());
+            self.image_iter = Box::new(album.iter_all_images());
             // If we found a child album with an image, return the image. Otherwise we'll keep
             // iterating over children.
             if let Some(i) = self.image_iter.next() {
@@ -180,7 +178,6 @@ impl Image {
         let thumb_path = Self::slide_path(&path, &thumb_filename);
         let screen_filename = Self::slide_filename(&path, "screen", true)?;
         let screen_path = Self::slide_path(&path, &screen_filename);
-        // TODO: add "slides" in html path?
         let html_filename = Self::slide_filename(&path, "html", false)?;
         let html_path = Self::slide_path(&path, &html_filename);
 
@@ -283,7 +280,10 @@ mod tests {
             children: vec![],
         });
 
-        let imgs: HashSet<&str> = ad.iter().map(|i| i.path.to_str().unwrap()).collect();
+        let imgs: HashSet<&str> = ad
+            .iter_all_images()
+            .map(|i| i.path.to_str().unwrap())
+            .collect();
         let expected: HashSet<&str> = HashSet::from([
             "foo",
             "bar",

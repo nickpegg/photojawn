@@ -147,7 +147,7 @@ fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     let output_path = album.path.join(&config.output_dir);
     // TODO: use par_iter() ?
     // TODO: progress bar ?
-    for img in album.iter() {
+    for img in album.iter_all_images() {
         let orig_image = image::open(&img.path)?;
 
         // TODO: If orig_path is the same as the original image, and quick mode is on, skip to next
