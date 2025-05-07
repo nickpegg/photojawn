@@ -11,7 +11,7 @@ use std::slice::Iter;
 pub struct AlbumDir {
     pub path: PathBuf,
     pub images: Vec<Image>,
-    pub cover: Option<Image>,
+    pub cover: Image,
     pub children: Vec<AlbumDir>,
 
     pub description: String,
@@ -99,10 +99,22 @@ impl AlbumDir {
             }
         }
 
-        if cover.is_none() && !images.is_empty() {
-            cover = Some(images[0].clone());
-        }
         // TODO: sort children and albums alphabetically
+
+        // Find a cover image if we didn't have an explicit one. Either the first image, or the
+        // first image from the first album that has a cover.
+        if cover.is_none() {
+            if !images.is_empty() {
+                cover = Some(images[0].clone());
+            } else {
+                // Find a cover image from one of the children
+                if !children.is_empty() {
+                    cover = Some(children[0].cover.clone());
+                }
+            }
+        }
+        let cover = cover.ok_or(anyhow!("Could not find a cover image for {}", p.display()))?;
+        log::debug!("Cover for {} is {cover:?}", p.display());
 
         Ok(AlbumDir {
             path: p.strip_prefix(root)?.to_path_buf(),

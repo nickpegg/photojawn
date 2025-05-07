@@ -78,11 +78,16 @@ impl TryFrom<&AlbumDir> for AlbumContext {
             PathBuf::new()
         };
 
-        // Pick a cover image thumbnail and build a path to it
-        // TODO: If album has no images, pick the cover from one of the albums
-        let cover_thumbnail_path = match &album.cover {
-            Some(i) => Path::new("slides").join(&i.thumb_filename),
-            None => PathBuf::from(""),
+        // Make the path to the thumbnail relative to the album that we're in
+        let cover_thumbnail_path: PathBuf;
+        if let Some(parent) = album.path.parent() {
+            cover_thumbnail_path = album.cover.thumb_path.strip_prefix(parent)?.to_path_buf()
+        } else {
+            cover_thumbnail_path = album
+                .cover
+                .thumb_path
+                .strip_prefix(&album.path)?
+                .to_path_buf()
         };
 
         let children: Vec<AlbumContext> = album
@@ -151,9 +156,7 @@ fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     let mut all_images: Vec<&Image> = album.iter_all_images().collect();
 
     // also resize cover image
-    if let Some(cover) = &album.cover {
-        all_images.push(cover);
-    }
+    all_images.push(&album.cover);
 
     all_images.par_iter().try_for_each(|img| {
         let orig_image = image::open(&img.path)?;
@@ -162,14 +165,14 @@ fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
         // image
         //
         // TODO: Hard-link if it's supported, to save on hard drive space
-        let orig_path = output_path.join(&img.path);
+        let full_size_path = output_path.join(&img.path);
         log::info!(
             "Copying original {} -> {}",
             img.path.display(),
-            orig_path.display()
+            full_size_path.display()
         );
-        fs::create_dir_all(orig_path.parent().unwrap_or(Path::new("")))?;
-        orig_image.save(&orig_path)?;
+        fs::create_dir_all(full_size_path.parent().unwrap_or(Path::new("")))?;
+        orig_image.save(&full_size_path)?;
 
         let thumb_path = output_path.join(&img.thumb_path);
         log::info!(
