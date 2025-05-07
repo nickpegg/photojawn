@@ -1,7 +1,7 @@
 use anyhow::anyhow;
 use image::ImageReader;
 use serde::Serialize;
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::slice::Iter;
@@ -152,16 +152,16 @@ impl<'a> Iterator for AlbumIter<'a> {
 pub struct Image {
     /// Path to the image, relative to the root album
     pub path: PathBuf,
-    pub filename: OsString,
+    pub filename: String,
 
     /// Text description of the image which is displayed below it on the HTML page
     pub description: String,
 
-    pub thumb_filename: OsString,
+    pub thumb_filename: String,
     pub thumb_path: PathBuf,
-    pub screen_filename: OsString,
+    pub screen_filename: String,
     pub screen_path: PathBuf,
-    pub html_filename: OsString,
+    pub html_filename: String,
     pub html_path: PathBuf,
 }
 
@@ -173,7 +173,9 @@ impl Image {
                 "Image path {} is missing a filename",
                 path.display()
             ))?
-            .into();
+            .to_str()
+            .ok_or(anyhow!("Cannot convert {} to a string", path.display()))?
+            .to_string();
         let thumb_filename = Self::slide_filename(&path, "thumb", true)?;
         let thumb_path = Self::slide_path(&path, &thumb_filename);
         let screen_filename = Self::slide_filename(&path, "screen", true)?;
@@ -198,7 +200,7 @@ impl Image {
     /// Returns the filename for a given slide type. For example if ext = "thumb" and the current
     /// filename is "blah.jpg" this will return "blah.thumb.jpg". If keep_ext if false, it would
     /// return "blah.thumb"
-    fn slide_filename(path: &PathBuf, ext: &str, keep_ext: bool) -> anyhow::Result<OsString> {
+    fn slide_filename(path: &PathBuf, ext: &str, keep_ext: bool) -> anyhow::Result<String> {
         let mut new_ext: OsString = ext.into();
         if keep_ext {
             if let Some(e) = path.extension() {
@@ -216,13 +218,16 @@ impl Image {
         let new_path = path.with_extension(new_ext);
         let new_name = new_path
             .file_name()
-            .ok_or(anyhow!("Image {} missing a file name", path.display()))?;
+            .ok_or(anyhow!("Image {} missing a file name", path.display()))?
+            .to_str()
+            .ok_or(anyhow!("Unable to convert {} to a string", path.display()))?
+            .to_string();
 
-        Ok(new_name.into())
+        Ok(new_name)
     }
 
     /// Returns the path to the file in the slides dir given the path to the original image
-    fn slide_path(path: &PathBuf, file_name: &OsStr) -> PathBuf {
+    fn slide_path(path: &PathBuf, file_name: &str) -> PathBuf {
         let mut new_path = path.clone();
         new_path.pop();
         new_path.push("slides");

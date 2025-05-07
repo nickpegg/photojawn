@@ -29,7 +29,7 @@ struct AlbumContext {
     name: String,
     description: String,
 
-    // TODO: images
+    images: Vec<Image>,
 
     // Path to the cover image thumbnail within /slides/, relative to the album dir. Used when
     // linking to an album from a parent album
@@ -88,12 +88,14 @@ impl TryFrom<&AlbumDir> for AlbumContext {
             .iter()
             .map(|a| AlbumContext::try_from(a))
             .collect::<anyhow::Result<Vec<AlbumContext>>>()?;
+        let images: Vec<Image> = album.images.clone();
 
         Ok(AlbumContext {
+            root_path,
             name,
             description: album.description.clone(),
             breadcrumbs,
-            root_path,
+            images,
             children,
             cover_thumbnail_path,
         })

@@ -4,9 +4,9 @@
     {% if root_path %}
     <h1>
         {% for crumb in breadcrumbs %}
-        / <a href="{{crumb.path}}">{{crumb.name}}</a>
+        <a href="{{crumb.path}}">{{crumb.name}}</a> /
         {% endfor %}
-        / {{name}}
+        {{name}}
     </h1>
     <hr>
     {% endif %}
@@ -35,12 +35,12 @@
             {% endfor %}
         </div>
     {% endif %}
-    {% if album_dir.images %}
+    {% if images %}
         {% if children %}
         <h2>Photos</h2>
         {% endif %}
         <div id="album-photos">
-            {% for image in album_dir.images %}
+            {% for image in images %}
                 <div class="thumbnail">
                     <a href="slides/{{image.html_filename}}">
                         <img src="slides/{{image.thumb_filename}}" />
