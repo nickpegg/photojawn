@@ -40,15 +40,19 @@ impl AlbumDir {
                     if filename == "description.txt" {
                         description = fs::read_to_string(entry_path)?;
                     } else if filename == "description.md" {
-                        let _conents = fs::read_to_string(entry_path)?;
-                        // TODO: render markdown
-                        todo!();
+                        log::debug!("Loading Markdown from {}", entry_path.display());
+                        let mut description = String::new();
+                        let contents = fs::read_to_string(&entry_path)?;
+                        let parser = pulldown_cmark::Parser::new(&contents);
+                        pulldown_cmark::html::push_html(&mut description, parser);
                     } else {
                         if filename.to_string_lossy().starts_with("cover") {
                             cover = Some(Image::new(
                                 entry_path.strip_prefix(root)?.to_path_buf(),
                                 String::new(),
                             )?);
+                            // Don't include the cover in the set of images
+                            continue;
                         }
 
                         let reader = ImageReader::open(&entry_path)?.with_guessed_format()?;
@@ -60,9 +64,15 @@ impl AlbumDir {
                             if entry_path.with_extension("txt").exists() {
                                 description = fs::read_to_string(entry_path.with_extension("txt"))?;
                             } else if entry_path.with_extension("md").exists() {
-                                let _contents = fs::read(entry_path.with_extension("md"))?;
-                                // TODO: render markdown
-                                todo!();
+                                log::debug!(
+                                    "Loading Markdown from {}",
+                                    entry_path.with_extension("md").display()
+                                );
+                                let mut description = String::new();
+                                let contents =
+                                    fs::read_to_string(&entry_path.with_extension("md"))?;
+                                let parser = pulldown_cmark::Parser::new(&contents);
+                                pulldown_cmark::html::push_html(&mut description, parser);
                             }
 
                             images.push(Image::new(
@@ -80,6 +90,8 @@ impl AlbumDir {
                     } else if dirname == "site" {
                         // Is a generated site dir, don't descend into it
                         continue;
+                    } else if dirname == "slides" {
+                        continue;
                     }
 
                     children.push(AlbumDir::from_path(&entry_path, root)?);
@@ -90,6 +102,7 @@ impl AlbumDir {
         if cover.is_none() && !images.is_empty() {
             cover = Some(images[0].clone());
         }
+        // TODO: sort children and albums alphabetically
 
         Ok(AlbumDir {
             path: p.strip_prefix(root)?.to_path_buf(),

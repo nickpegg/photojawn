@@ -79,6 +79,7 @@ impl TryFrom<&AlbumDir> for AlbumContext {
         };
 
         // Pick a cover image thumbnail and build a path to it
+        // TODO: If album has no images, pick the cover from one of the albums
         let cover_thumbnail_path = match &album.cover {
             Some(i) => Path::new("slides").join(&i.thumb_filename),
             None => PathBuf::from(""),
@@ -147,12 +148,20 @@ fn copy_static(config: &Config) -> anyhow::Result<()> {
 fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     let output_path = album.path.join(&config.output_dir);
     // TODO: progress bar ?
-    let all_images: Vec<&Image> = album.iter_all_images().collect();
+    let mut all_images: Vec<&Image> = album.iter_all_images().collect();
+
+    // also resize cover image
+    if let Some(cover) = &album.cover {
+        all_images.push(cover);
+    }
+
     all_images.par_iter().try_for_each(|img| {
         let orig_image = image::open(&img.path)?;
 
         // TODO: If orig_path is the same as the original image, and quick mode is on, skip to next
         // image
+        //
+        // TODO: Hard-link if it's supported, to save on hard drive space
         let orig_path = output_path.join(&img.path);
         log::info!(
             "Copying original {} -> {}",
