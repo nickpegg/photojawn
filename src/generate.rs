@@ -71,7 +71,7 @@ impl TryFrom<&AlbumDir> for AlbumContext {
         log::debug!("Crumbs for {}: {breadcrumbs:?}", album.path.display());
 
         // The first breadcrumb path is the relative path to the root album
-        let root_path = if breadcrumbs.len() > 0 {
+        let root_path = if !breadcrumbs.is_empty() {
             breadcrumbs[0].path.clone()
         } else {
             PathBuf::new()
@@ -86,7 +86,7 @@ impl TryFrom<&AlbumDir> for AlbumContext {
         let children: Vec<AlbumContext> = album
             .children
             .iter()
-            .map(|a| AlbumContext::try_from(a))
+            .map(AlbumContext::try_from)
             .collect::<anyhow::Result<Vec<AlbumContext>>>()?;
         let images: Vec<Image> = album.images.clone();
 
@@ -212,7 +212,7 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
         )?;
 
         for child in album.children.iter() {
-            dir_queue.push_back(&child);
+            dir_queue.push_back(child);
         }
 
         for (pos, img) in album.images.iter().enumerate() {

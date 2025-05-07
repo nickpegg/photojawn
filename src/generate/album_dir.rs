@@ -48,7 +48,7 @@ impl AlbumDir {
                     } else {
                         if filename.to_string_lossy().starts_with("cover") {
                             cover = Some(Image::new(
-                                entry_path.strip_prefix(&root)?.to_path_buf(),
+                                entry_path.strip_prefix(root)?.to_path_buf(),
                                 String::new(),
                             )?);
                         }
@@ -60,16 +60,15 @@ impl AlbumDir {
 
                             // Read in any associated description file
                             if entry_path.with_extension("txt").exists() {
-                                description =
-                                    fs::read_to_string(&entry_path.with_extension("txt"))?;
+                                description = fs::read_to_string(entry_path.with_extension("txt"))?;
                             } else if entry_path.with_extension("md").exists() {
-                                let _contents = fs::read(&entry_path.with_extension("md"))?;
+                                let _contents = fs::read(entry_path.with_extension("md"))?;
                                 // TODO: render markdown
                                 todo!();
                             }
 
                             images.push(Image::new(
-                                entry_path.strip_prefix(&root)?.to_path_buf(),
+                                entry_path.strip_prefix(root)?.to_path_buf(),
                                 description,
                             )?);
                         }
@@ -85,12 +84,12 @@ impl AlbumDir {
                         continue;
                     }
 
-                    children.push(AlbumDir::from_path(&entry_path, &root)?);
+                    children.push(AlbumDir::from_path(&entry_path, root)?);
                 }
             }
         }
 
-        if cover.is_none() && images.len() > 0 {
+        if cover.is_none() && !images.is_empty() {
             cover = Some(images[0].clone());
         }
 
@@ -201,7 +200,7 @@ impl Image {
     /// Returns the filename for a given slide type. For example if ext = "thumb" and the current
     /// filename is "blah.jpg" this will return "blah.thumb.jpg". If keep_ext if false, it would
     /// return "blah.thumb"
-    fn slide_filename(path: &PathBuf, ext: &str, keep_ext: bool) -> anyhow::Result<String> {
+    fn slide_filename(path: &Path, ext: &str, keep_ext: bool) -> anyhow::Result<String> {
         let mut new_ext: OsString = ext.into();
         if keep_ext {
             if let Some(e) = path.extension() {
@@ -228,11 +227,11 @@ impl Image {
     }
 
     /// Returns the path to the file in the slides dir given the path to the original image
-    fn slide_path(path: &PathBuf, file_name: &str) -> PathBuf {
-        let mut new_path = path.clone();
+    fn slide_path(path: &Path, file_name: &str) -> PathBuf {
+        let mut new_path = path.to_path_buf();
         new_path.pop();
         new_path.push("slides");
-        new_path.push(&file_name);
+        new_path.push(file_name);
         new_path
     }
 }
