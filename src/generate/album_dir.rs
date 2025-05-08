@@ -96,7 +96,8 @@ impl AlbumDir {
             }
         }
 
-        // TODO: sort children and albums alphabetically
+        children.sort_by_key(|c| c.path.clone());
+        images.sort_by_key(|i| i.path.clone());
 
         // Find a cover image if we didn't have an explicit one. Either the first image, or the
         // first image from the first album that has a cover.
