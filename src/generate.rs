@@ -119,7 +119,7 @@ struct SlideContext {
     next_image: Option<Image>,
 }
 
-pub fn generate(root_path: &PathBuf) -> anyhow::Result<PathBuf> {
+pub fn generate(root_path: &PathBuf, quick: bool) -> anyhow::Result<PathBuf> {
     log::debug!("Generating album in {}", root_path.display());
     let config = Config::from_album(root_path.to_path_buf())?;
     let orig_path = env::current_dir()?;
@@ -130,7 +130,7 @@ pub fn generate(root_path: &PathBuf) -> anyhow::Result<PathBuf> {
 
     fs::create_dir_all(&config.output_dir)?;
     copy_static(&config)?;
-    generate_images(&config, &album)?;
+    generate_images(&config, &album, quick)?;
     generate_html(&config, &album)?;
 
     env::set_current_dir(orig_path)?;
@@ -150,7 +150,7 @@ fn copy_static(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
+fn generate_images(config: &Config, album: &AlbumDir, quick: bool) -> anyhow::Result<()> {
     let output_path = album.path.join(&config.output_dir);
     // TODO: progress bar ?
     let mut all_images: Vec<&Image> = album.iter_all_images().collect();
@@ -159,21 +159,27 @@ fn generate_images(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     all_images.push(&album.cover);
 
     all_images.par_iter().try_for_each(|img| {
-        let orig_image = image::open(&img.path)?;
-
         // TODO: If orig_path is the same as the original image, and quick mode is on, skip to next
         // image
         //
         // TODO: Hard-link if it's supported, to save on hard drive space
         let full_size_path = output_path.join(&img.path);
+        if quick
+            && full_size_path.exists()
+            && fs::read(&full_size_path)? == fs::read(&full_size_path)?
+        {
+            log::info!("Skipping {}, already generated", img.path.display());
+            return Ok(());
+        }
         log::info!(
             "Copying original {} -> {}",
             img.path.display(),
             full_size_path.display()
         );
         fs::create_dir_all(full_size_path.parent().unwrap_or(Path::new("")))?;
-        orig_image.save(&full_size_path)?;
+        fs::copy(&img.path, &full_size_path)?;
 
+        let orig_image = image::open(&img.path)?;
         let thumb_path = output_path.join(&img.thumb_path);
         log::info!(
             "Resizing {} -> {}",

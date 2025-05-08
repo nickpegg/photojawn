@@ -14,8 +14,8 @@ fn main() -> anyhow::Result<()> {
             make_skeleton(album_path)?;
             println!("Album created in {}", album_path.display());
         }
-        Commands::Generate {} => {
-            let path = generate(&album_path.to_path_buf())?;
+        Commands::Generate { quick } => {
+            let path = generate(&album_path.to_path_buf(), quick)?;
             println!("Album site generated in {}", path.display());
         }
     }
@@ -40,8 +40,8 @@ enum Commands {
     Init {},
     /// Generates a photo album
     Generate {
-        // /// Don't re-generate things that already exist (thumbnails, etc.)
-        // #[arg(long)]
-        // _quick: bool,
+        /// Don't re-generate things that already exist (thumbnails, etc.)
+        #[arg(long)]
+        quick: bool,
     },
 }
