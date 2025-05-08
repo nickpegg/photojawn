@@ -46,6 +46,7 @@ impl AlbumDir {
                         pulldown_cmark::html::push_html(&mut description, parser);
                     } else {
                         if filename.to_string_lossy().starts_with("cover") {
+                            log::debug!("Found explicit cover for {}", p.display());
                             cover = Some(Image::new(
                                 entry_path.strip_prefix(root)?.to_path_buf(),
                                 String::new(),
@@ -112,7 +113,7 @@ impl AlbumDir {
             }
         }
         let cover = cover.ok_or(anyhow!("Could not find a cover image for {}", p.display()))?;
-        log::debug!("Cover for {} is {cover:?}", p.display());
+        log::debug!("Cover for {} is {}", p.display(), cover.path.display());
 
         Ok(AlbumDir {
             path: p.strip_prefix(root)?.to_path_buf(),

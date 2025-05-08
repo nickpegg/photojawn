@@ -159,8 +159,12 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
     let output_path = album.path.join(&config.output_dir);
     let mut all_images: Vec<&Image> = album.iter_all_images().collect();
 
-    // also resize cover image
-    all_images.push(&album.cover);
+    // also resize cover images, since we didn't count those as part of the image collections
+    let mut album_queue: VecDeque<&AlbumDir> = VecDeque::from([album]);
+    while let Some(album) = album_queue.pop_front() {
+        all_images.push(&album.cover);
+        album_queue.extend(&album.children);
+    }
 
     println!("Generating images...");
     let progress = ProgressBar::new(all_images.len() as u64);
