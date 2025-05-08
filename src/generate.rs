@@ -2,16 +2,18 @@ pub mod album_dir;
 
 use crate::config::Config;
 use album_dir::{AlbumDir, Image};
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use image::imageops::FilterType;
 use indicatif::ProgressBar;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::VecDeque;
+use std::collections::{HashMap, HashSet};
 use std::env;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use tera::Tera;
 
 const IMG_RESIZE_FILTER: FilterType = FilterType::Lanczos3;
@@ -157,18 +159,28 @@ fn copy_static(config: &Config) -> anyhow::Result<()> {
 
 fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Result<()> {
     let output_path = album.path.join(&config.output_dir);
-    let mut all_images: Vec<&Image> = album.iter_all_images().collect();
+    // HashSet is to avoid dupliates, which could happen since we add covers in later
+    let mut all_images: HashSet<&Image> = album.iter_all_images().collect();
 
     // also resize cover images, since we didn't count those as part of the image collections
     let mut album_queue: VecDeque<&AlbumDir> = VecDeque::from([album]);
     while let Some(album) = album_queue.pop_front() {
-        all_images.push(&album.cover);
+        all_images.insert(&album.cover);
         album_queue.extend(&album.children);
     }
+
+    let path_locks: HashMap<&PathBuf, Mutex<&PathBuf>> = all_images
+        .iter()
+        .map(|i| (&i.path, Mutex::new(&i.path)))
+        .collect();
 
     println!("Generating images...");
     let progress = ProgressBar::new(all_images.len() as u64);
     let result = all_images.par_iter().try_for_each(|img| {
+        // Get the lock on the path to make sure two threads don't try to generate the same image
+        // on disk.
+        let _path_lock = path_locks.get(&img.path).unwrap().lock().unwrap();
+
         let full_size_path = output_path.join(&img.path);
         if !full
             && full_size_path.exists()
@@ -187,7 +199,8 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
         if full_size_path.exists() {
             fs::remove_file(&full_size_path)?;
         }
-        fs::hard_link(&img.path, &full_size_path)?;
+        fs::hard_link(&img.path, &full_size_path)
+            .with_context(|| format!("Error creating hard link at {}", full_size_path.display()))?;
 
         let orig_image = image::open(&img.path)?;
         let thumb_path = output_path.join(&img.thumb_path);
@@ -203,7 +216,8 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
                 config.thumbnail_size.1,
                 IMG_RESIZE_FILTER,
             )
-            .save(&thumb_path)?;
+            .save(&thumb_path)
+            .with_context(|| format!("Error saving {}", thumb_path.display()))?;
 
         let screen_path = output_path.join(&img.screen_path);
         log::info!(
@@ -214,7 +228,8 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
         fs::create_dir_all(thumb_path.parent().unwrap_or(Path::new("")))?;
         orig_image
             .resize(config.view_size.0, config.view_size.1, IMG_RESIZE_FILTER)
-            .save(&screen_path)?;
+            .save(&screen_path)
+            .with_context(|| format!("Error saving {}", screen_path.display()))?;
 
         progress.inc(1);
         Ok(())
@@ -284,4 +299,135 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::generate;
+    use crate::skel::make_skeleton;
+    use mktemp::Temp;
+    use std::collections::{HashSet, VecDeque};
+    use std::ffi::OsStr;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    /// Test that the generate function creates a rendered site as we expect it
+    fn test_generate() {
+        init();
+        let album_path = make_test_album();
+        let output_path = generate(&album_path.to_path_buf(), false).unwrap();
+
+        check_album(output_path).unwrap();
+    }
+
+    fn init() {
+        let _ = env_logger::builder().is_test(true).try_init();
+    }
+
+    /// Copies the test album to a tempdir and returns the path to it
+    fn make_test_album() -> Temp {
+        let tmpdir = Temp::new_dir().unwrap();
+        let source_path = Path::new("resources/test_album");
+
+        log::info!("Creating test album in {}", tmpdir.display());
+        make_skeleton(&tmpdir.to_path_buf()).unwrap();
+        fs_extra::dir::copy(
+            &source_path,
+            &tmpdir,
+            &fs_extra::dir::CopyOptions::new().content_only(true),
+        )
+        .unwrap();
+
+        tmpdir
+    }
+
+    /// Does basic sanity checks on an output album
+    fn check_album(root_path: PathBuf) -> anyhow::Result<()> {
+        log::debug!("Checking album dir {}", root_path.display());
+
+        // The _static dir should have gotten copied into <output>/static
+        assert!(root_path.join("static/index.css").exists());
+
+        let mut dirs: VecDeque<PathBuf> = VecDeque::from([root_path.clone()]);
+        while let Some(dir) = dirs.pop_front() {
+            let mut files: Vec<PathBuf> = Vec::new();
+            for entry in dir.read_dir().unwrap() {
+                let path = entry.unwrap().path();
+                if path.is_dir()
+                    && !path.ends_with(Path::new("slides"))
+                    && path.file_name() != Some(OsStr::new("static"))
+                {
+                    dirs.push_back(path.clone());
+                } else if path.is_file() {
+                    files.push(path);
+                }
+            }
+
+            // There should be an index.html
+            let index_path = dir.join("index.html");
+            assert!(
+                index_path.exists(),
+                "Expected {} to exist",
+                index_path.display()
+            );
+
+            // There should be a slides dir
+            let slides_path = dir.join("slides");
+            assert!(
+                slides_path.is_dir(),
+                "Expected {} to be a dir",
+                slides_path.display()
+            );
+
+            // No two images should have the same path
+            let image_set: HashSet<&PathBuf> = files.iter().collect();
+            assert_eq!(image_set.len(), files.len());
+
+            // For each image in the album (including the cover), in slides there should be a:
+            // - <image>.html
+            // - <image>.screen.<ext>
+            // - <image>.thumb.<ext>
+            for file in &files {
+                if let Some(ext) = file.extension() {
+                    if ext != "jpg" {
+                        continue;
+                    }
+                }
+                log::debug!("Checking associated files for {}", file.display());
+
+                if !file
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .starts_with("cover")
+                {
+                    let html_path =
+                        slides_path.join(&file.with_extension("html").file_name().unwrap());
+                    assert!(
+                        html_path.exists(),
+                        "Expected {} to exist",
+                        html_path.display()
+                    );
+                }
+                for ext in ["screen.jpg", "thumb.jpg"] {
+                    let img_path = slides_path.join(file.with_extension(ext).file_name().unwrap());
+                    assert!(
+                        img_path.exists(),
+                        "Expected {} to exist",
+                        img_path.display()
+                    );
+                }
+            }
+
+            // There shouldn't be any .txt or .md files hanging around
+            for file in &files {
+                if let Some(ext) = file.extension() {
+                    assert_ne!(ext, "md");
+                    assert_ne!(ext, "txt");
+                }
+            }
+        }
+        Ok(())
+    }
 }

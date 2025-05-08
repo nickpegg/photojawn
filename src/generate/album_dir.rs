@@ -18,7 +18,6 @@ pub struct AlbumDir {
 }
 
 impl AlbumDir {
-    // TODO: Add iterator over image dirs
     /// Returns an iterator over all images in the album and subalbums
     pub fn iter_all_images(&self) -> AlbumImageIter {
         AlbumImageIter::new(self)
