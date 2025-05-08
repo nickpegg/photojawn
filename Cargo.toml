@@ -1,6 +1,6 @@
 [package]
 name = "photojawn"
-version = "0.2.0"
+version = "0.2.0-pre.1"
 description = "A static site generator for photo albums"
 authors = ["Nick Pegg <nick@nickpegg.com>"]
 license = "MIT"
