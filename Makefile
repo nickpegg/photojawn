@@ -2,52 +2,46 @@
 all: fmt lint test
 
 # What to have CI systems run
-ci: init lint test
+ci: lint test
 
 # Final pre-flight checks then deploy everywhere!
-shipit: all build staging prod
+# TODO
+# shipit: all build staging prod
 
-version := $(shell yq -p toml .tool.poetry.version < pyproject.toml)
-scie_platforms := linux-aarch64 linux-x86_64 macos-aarch64 macos-x86_64
+# version := $(shell yq -p toml .tool.poetry.version < pyproject.toml)
 
 
-init:
-	poetry install
+# init:
+# 	poetry install
 
 # Everything to get the dev env set up
-dev: init
+# dev: init
 
 fmt:
-	poetry run ruff check --select I --fix	# import sorting
-	poetry run ruff format
+	cargo fmt
 
 lint:
-	poetry run ruff check --fix
+	cargo clippy
 
 test:
-	poetry run mypy .
-	# No tests yet lol
-	# poetry run pytest
+	RUST_BACKTRACE=1 cargo test
 
-# Faster tests, only running what's changed
-test-fast:
-	poetry run mypy .
-	poetry run pytest --testmon
 
 test-watch:
-	find . -name '*py' -or -name '*html' -or -name poetry.lock | entr -r -c make test-fast
+	find . -name '*rs' -or -name '*html' -or -name Cargo.lock | entr -r -c make test
 
 clean:
-	rm -rv dist || true
+	cargo clean
 
-docker:
-	podman build -t nickpegg/photojawn . --build-arg GIT_COMMIT=$(shell git rev-parse --short HEAD)
+# TODO?
+# docker:
+# 	podman build -t nickpegg/photojawn . --build-arg GIT_COMMIT=$(shell git rev-parse --short HEAD)
 
 dist:
-	poetry build
-	poetry run pex --project . -o dist/photojawn -c photojawn --scie eager $(foreach plat,$(scie_platforms), --scie-platform $(plat))
+	cargo build --release
 
-release: dist
-	git push --tags
-	gh release create --verify-tag v$(version)
-	gh release upload v$(version) dist/photojawn-$(version)-*whl $(foreach plat,$(scie_platforms),dist/photojawn-$(plat))
+# TODO
+# release: dist
+# 	git push --tags
+# 	gh release create --verify-tag v$(version)
+# 	gh release upload v$(version) dist/photojawn-$(version)-*whl $(foreach plat,$(scie_platforms),dist/photojawn-$(plat))

@@ -3,7 +3,10 @@ __pycache__
 .testmondata
 dist
 
+# Rust stuff
+/target
+
 # Project specific files
-test_album
+test_album*
 DESIGN.md
 TODO.md

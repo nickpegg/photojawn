@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+    {% if root_path %}
+    <h1>
+        {% for crumb in breadcrumbs %}
+        <a href="{{crumb.path}}">{{crumb.name}}</a> /
+        {% endfor %}
+        {{name}}
+    </h1>
+    <hr>
+    {% endif %}
+
+    {% if description %}
+    <div class="caption">
+    {{ description | safe }}
+    </div>
+    {% endif %}
+
+    {% if children %}
+        <h2>Albums</h2>
+        <div id="album-children">
+            {% for child in children %}
+                <div class="album">
+                    <a href="{{child.name}}/">
+                        <div>
+                        <img
+                            src="{{child.cover_thumbnail_path}}" />
+                        </div>
+                        <div>
+                        {{child.name}}
+                        </div>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    {% if images %}
+        {% if children %}
+        <h2>Photos</h2>
+        {% endif %}
+        <div id="album-photos">
+            {% for image in images %}
+                <div class="thumbnail">
+                    <a href="slides/{{image.html_filename}}">
+                        <img src="slides/{{image.thumb_filename}}" />
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endblock %}

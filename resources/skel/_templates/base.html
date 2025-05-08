@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>My Photos</title>
-        <link rel="stylesheet" href="{{ root_path }}/static/index.css" type="text/css">
+        <link rel="stylesheet" href="{%if root_path %}{{ root_path }}/{%endif%}static/index.css" type="text/css">
     </head>
     <body>
         <div id="header">
