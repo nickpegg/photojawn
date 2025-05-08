@@ -163,7 +163,6 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
     all_images.push(&album.cover);
 
     all_images.par_iter().try_for_each(|img| {
-        // TODO: Hard-link if it's supported, to save on hard drive space
         let full_size_path = output_path.join(&img.path);
         if !full
             && full_size_path.exists()
@@ -178,7 +177,10 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
             full_size_path.display()
         );
         fs::create_dir_all(full_size_path.parent().unwrap_or(Path::new("")))?;
-        fs::copy(&img.path, &full_size_path)?;
+        if full_size_path.exists() {
+            fs::remove_file(&full_size_path)?;
+        }
+        fs::hard_link(&img.path, &full_size_path)?;
 
         let orig_image = image::open(&img.path)?;
         let thumb_path = output_path.join(&img.thumb_path);
@@ -224,7 +226,7 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
     let mut dir_queue: VecDeque<&AlbumDir> = VecDeque::from([album]);
     while let Some(album) = dir_queue.pop_front() {
         let html_path = output_path.join(&album.path).join("index.html");
-        log::info!("Rendering album {}", html_path.display());
+        log::info!("Rendering album page {}", html_path.display());
         let ctx = AlbumContext::try_from(album)?;
         log::debug!("Album context: {ctx:?}");
         fs::write(
@@ -253,7 +255,7 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
                 }
             }
 
-            log::info!("Rendering image {}", img.html_path.display());
+            log::info!("Rendering image page {}", img.html_path.display());
             let ctx = SlideContext {
                 root_path: path_to_root,
                 image: img.clone(),
