@@ -11,11 +11,11 @@ ci: lint test
 # version := $(shell yq -p toml .tool.poetry.version < pyproject.toml)
 
 
-init:
-	poetry install
+# init:
+# 	poetry install
 
 # Everything to get the dev env set up
-dev: init
+# dev: init
 
 fmt:
 	cargo fmt
@@ -24,7 +24,7 @@ lint:
 	cargo clippy
 
 test:
-	RUST_BACKTRACE=1 cargo test --release
+	RUST_BACKTRACE=1 cargo test
 
 
 test-watch:
