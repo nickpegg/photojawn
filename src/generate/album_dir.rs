@@ -41,7 +41,6 @@ impl AlbumDir {
                         description = fs::read_to_string(entry_path)?;
                     } else if filename == "description.md" {
                         log::debug!("Loading Markdown from {}", entry_path.display());
-                        let mut description = String::new();
                         let contents = fs::read_to_string(&entry_path)?;
                         let parser = pulldown_cmark::Parser::new(&contents);
                         pulldown_cmark::html::push_html(&mut description, parser);
@@ -68,7 +67,6 @@ impl AlbumDir {
                                     "Loading Markdown from {}",
                                     entry_path.with_extension("md").display()
                                 );
-                                let mut description = String::new();
                                 let contents =
                                     fs::read_to_string(&entry_path.with_extension("md"))?;
                                 let parser = pulldown_cmark::Parser::new(&contents);

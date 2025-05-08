@@ -42,6 +42,7 @@ enum Commands {
     Generate {
         /// Don't re-generate things that already exist (thumbnails, etc.)
         #[arg(long)]
+        // TODO: Invert this to be a --full flag and default to quick?
         quick: bool,
     },
 }
