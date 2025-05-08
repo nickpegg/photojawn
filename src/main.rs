@@ -6,12 +6,11 @@ use std::path::Path;
 fn main() -> anyhow::Result<()> {
     env_logger::init();
     let cli = Cli::parse();
-    // TODO: canonicalize path? To allow ~/foo/bar
-    let album_path = Path::new(&cli.album_path);
+    let album_path = Path::new(&cli.album_path).canonicalize()?;
 
     match cli.subcommand {
         Commands::Init {} => {
-            make_skeleton(album_path)?;
+            make_skeleton(&album_path)?;
             println!("Album created in {}", album_path.display());
         }
         Commands::Generate { full } => {
