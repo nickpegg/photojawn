@@ -17,8 +17,12 @@ pub struct Config {
 impl Config {
     pub fn from_album(path: PathBuf) -> anyhow::Result<Config> {
         let config_path = path.join("photojawn.conf.yml");
-        let content = fs::read(&config_path)
-            .with_context(|| format!("Failed to read config from {}", config_path.display()))?;
+        let content = fs::read(&config_path).with_context(|| {
+            format!(
+                "Failed to read config from {}. Is this an album directory?",
+                config_path.display(),
+            )
+        })?;
         let cfg = serde_yml::from_slice(&content)
             .with_context(|| format!("Failed to parse config from {}", config_path.display()))?;
         Ok(cfg)
