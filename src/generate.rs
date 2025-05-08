@@ -4,6 +4,7 @@ use crate::config::Config;
 use album_dir::{AlbumDir, Image};
 use anyhow::anyhow;
 use image::imageops::FilterType;
+use indicatif::ProgressBar;
 use rayon::prelude::*;
 use serde::Serialize;
 use std::collections::VecDeque;
@@ -156,13 +157,14 @@ fn copy_static(config: &Config) -> anyhow::Result<()> {
 
 fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Result<()> {
     let output_path = album.path.join(&config.output_dir);
-    // TODO: progress bar ?
     let mut all_images: Vec<&Image> = album.iter_all_images().collect();
 
     // also resize cover image
     all_images.push(&album.cover);
 
-    all_images.par_iter().try_for_each(|img| {
+    println!("Generating images...");
+    let progress = ProgressBar::new(all_images.len() as u64);
+    let result = all_images.par_iter().try_for_each(|img| {
         let full_size_path = output_path.join(&img.path);
         if !full
             && full_size_path.exists()
@@ -171,6 +173,7 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
             log::info!("Skipping {}, already generated", img.path.display());
             return Ok(());
         }
+
         log::info!(
             "Copying original {} -> {}",
             img.path.display(),
@@ -209,8 +212,12 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
             .resize(config.view_size.0, config.view_size.1, IMG_RESIZE_FILTER)
             .save(&screen_path)?;
 
+        progress.inc(1);
         Ok(())
-    })
+    });
+    progress.finish();
+
+    result
 }
 
 fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
@@ -222,6 +229,8 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
             .to_str()
             .ok_or(anyhow!("Missing _templates dir in album dir"))?,
     )?;
+
+    println!("Generating HTML...");
 
     let mut dir_queue: VecDeque<&AlbumDir> = VecDeque::from([album]);
     while let Some(album) = dir_queue.pop_front() {
