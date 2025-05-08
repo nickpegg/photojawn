@@ -119,7 +119,11 @@ struct SlideContext {
     next_image: Option<Image>,
 }
 
-pub fn generate(root_path: &PathBuf, quick: bool) -> anyhow::Result<PathBuf> {
+/// Generate an album
+///
+/// `root_path` is a path to the root directory of the album. `full` if true will regenerate
+/// everything, including images that already exist.
+pub fn generate(root_path: &PathBuf, full: bool) -> anyhow::Result<PathBuf> {
     log::debug!("Generating album in {}", root_path.display());
     let config = Config::from_album(root_path.to_path_buf())?;
     let orig_path = env::current_dir()?;
@@ -130,7 +134,7 @@ pub fn generate(root_path: &PathBuf, quick: bool) -> anyhow::Result<PathBuf> {
 
     fs::create_dir_all(&config.output_dir)?;
     copy_static(&config)?;
-    generate_images(&config, &album, quick)?;
+    generate_images(&config, &album, full)?;
     generate_html(&config, &album)?;
 
     env::set_current_dir(orig_path)?;
@@ -150,7 +154,7 @@ fn copy_static(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn generate_images(config: &Config, album: &AlbumDir, quick: bool) -> anyhow::Result<()> {
+fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Result<()> {
     let output_path = album.path.join(&config.output_dir);
     // TODO: progress bar ?
     let mut all_images: Vec<&Image> = album.iter_all_images().collect();
@@ -159,12 +163,9 @@ fn generate_images(config: &Config, album: &AlbumDir, quick: bool) -> anyhow::Re
     all_images.push(&album.cover);
 
     all_images.par_iter().try_for_each(|img| {
-        // TODO: If orig_path is the same as the original image, and quick mode is on, skip to next
-        // image
-        //
         // TODO: Hard-link if it's supported, to save on hard drive space
         let full_size_path = output_path.join(&img.path);
-        if quick
+        if !full
             && full_size_path.exists()
             && fs::read(&full_size_path)? == fs::read(&full_size_path)?
         {
