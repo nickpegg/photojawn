@@ -67,8 +67,7 @@ impl AlbumDir {
                                     "Loading Markdown from {}",
                                     entry_path.with_extension("md").display()
                                 );
-                                let contents =
-                                    fs::read_to_string(&entry_path.with_extension("md"))?;
+                                let contents = fs::read_to_string(entry_path.with_extension("md"))?;
                                 let parser = pulldown_cmark::Parser::new(&contents);
                                 pulldown_cmark::html::push_html(&mut description, parser);
                             }
@@ -266,7 +265,7 @@ mod tests {
         let mut ad = AlbumDir {
             path: "".into(),
             description: "".to_string(),
-            cover: Some(Image::new("foo".into(), "".to_string()).unwrap()),
+            cover: Image::new("foo".into(), "".to_string()).unwrap(),
             images: vec![
                 Image::new("foo".into(), "".to_string()).unwrap(),
                 Image::new("bar".into(), "".to_string()).unwrap(),
@@ -277,7 +276,7 @@ mod tests {
         ad.children.push(AlbumDir {
             path: "subdir".into(),
             description: "".to_string(),
-            cover: Some(Image::new("subdir/foo".into(), "".to_string()).unwrap()),
+            cover: Image::new("subdir/foo".into(), "".to_string()).unwrap(),
             images: vec![
                 Image::new("subdir/foo".into(), "".to_string()).unwrap(),
                 Image::new("subdir/bar".into(), "".to_string()).unwrap(),
@@ -285,9 +284,7 @@ mod tests {
             children: vec![AlbumDir {
                 path: "subdir/deeper_subdir".into(),
                 description: "".to_string(),
-                cover: Some(
-                    Image::new("subdir/deeper_subdir/image.jpg".into(), "".to_string()).unwrap(),
-                ),
+                cover: Image::new("subdir/deeper_subdir/image.jpg".into(), "".to_string()).unwrap(),
                 images: vec![
                     Image::new("subdir/deeper_subdir/image.jpg".into(), String::new()).unwrap(),
                 ],
@@ -297,7 +294,7 @@ mod tests {
         // A child album with no images
         ad.children.push(AlbumDir {
             description: "".to_string(),
-            cover: None,
+            cover: Image::new("blah".into(), "".to_string()).unwrap(),
             path: "another_subdir".into(),
             images: vec![],
             children: vec![],

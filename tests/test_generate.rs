@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 fn test_generate() {
     init();
     let album_path = make_test_album();
-    let output_path = generate(&album_path.to_path_buf()).unwrap();
+    let output_path = generate(&album_path.to_path_buf(), false).unwrap();
 
     check_album(output_path).unwrap();
 }
