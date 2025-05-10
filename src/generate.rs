@@ -4,7 +4,7 @@ mod image;
 use crate::config::Config;
 use crate::generate::image::Image;
 use album_dir::AlbumDir;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use indicatif::ProgressBar;
 use rayon::prelude::*;
 use serde::Serialize;
@@ -142,7 +142,7 @@ fn generate_html(config: &Config, album: &AlbumDir) -> anyhow::Result<()> {
             .path
             .join("_templates/*.html")
             .to_str()
-            .ok_or(anyhow!("Missing _templates dir in album dir"))?,
+            .ok_or(anyhow!("Album path {} is invalid", album.path.display()))?,
     )?;
 
     println!("Generating HTML...");
@@ -254,10 +254,9 @@ impl TryFrom<&AlbumDir> for AlbumContext {
         log::debug!("Crumbs for {}: {breadcrumbs:?}", album.path.display());
 
         // The first breadcrumb path is the relative path to the root album
-        let root_path = if !breadcrumbs.is_empty() {
-            breadcrumbs[0].path.clone()
-        } else {
-            PathBuf::new()
+        let root_path = match breadcrumbs.is_empty() {
+            false => breadcrumbs[0].path.clone(),
+            true => PathBuf::new(),
         };
 
         // Make the path to the thumbnail relative to the album that we're in
