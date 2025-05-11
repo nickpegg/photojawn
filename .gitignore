@@ -7,6 +7,6 @@ dist
 /target
 
 # Project specific files
-test_album*
+/test_album*
 DESIGN.md
 TODO.md
