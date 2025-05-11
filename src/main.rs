@@ -1,5 +1,6 @@
 use clap::{Parser, Subcommand};
 use photojawn::generate::generate;
+use photojawn::reorganize::reorganize;
 use photojawn::skel::make_skeleton;
 use std::path::Path;
 
@@ -17,6 +18,9 @@ fn main() -> anyhow::Result<()> {
         Commands::Generate { full } => {
             let path = generate(&album_path.to_path_buf(), full)?;
             println!("Album site generated in {}", path.display());
+        }
+        Commands::Reorganize { path, dry_run } => {
+            reorganize(Path::new(&path), dry_run)?;
         }
     }
 
@@ -43,5 +47,13 @@ enum Commands {
         /// Regenerate everything, including images that have already been generated
         #[arg(long)]
         full: bool,
+    },
+    /// Reorganize photos in an album by date
+    Reorganize {
+        #[arg()]
+        path: String,
+        /// Don't actually reorganize, just say what renames would happen
+        #[arg(long)]
+        dry_run: bool,
     },
 }

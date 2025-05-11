@@ -4,7 +4,7 @@ mod image;
 use crate::config::Config;
 use crate::generate::image::Image;
 use album_dir::AlbumDir;
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use indicatif::ProgressBar;
 use rayon::prelude::*;
 use serde::Serialize;
@@ -98,7 +98,8 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
         fs::hard_link(&img.path, &full_size_path)
             .with_context(|| format!("Error creating hard link at {}", full_size_path.display()))?;
 
-        let orig_image = ::image::open(&img.path)?;
+        let orig_image = ::image::open(&img.path)
+            .with_context(|| format!("Failed to read image {}", &img.path.display()))?;
         let thumb_path = output_path.join(&img.thumb_path);
         log::info!(
             "Resizing {} -> {}",
