@@ -138,7 +138,6 @@ fn get_exif_datetime(path: PathBuf) -> anyhow::Result<UtcDateTime> {
 
     let file = File::open(&path).with_context(|| format!("Couldn't open {}", path.display()))?;
     let mut bufreader = BufReader::new(file);
-    // TODO: Return a better error if EXIF is not supported
     let exif = exif::Reader::new()
         .read_from_container(&mut bufreader)
         .with_context(|| format!("Couldn't read EXIF data from {}", path.display()))?;
@@ -156,8 +155,7 @@ fn get_exif_datetime(path: PathBuf) -> anyhow::Result<UtcDateTime> {
                 Err(_) => PrimitiveDateTime::parse(s, format_without_offset)?.as_utc(),
             }
         }
-        // TODO: return some error
-        _ => todo!(),
+        _ => return Err(OrganizeError::ExifNoDateTime(path).into()),
     };
 
     Ok(dt)
