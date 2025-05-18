@@ -4,7 +4,7 @@ mod image;
 use crate::config::Config;
 use crate::generate::image::Image;
 use album_dir::AlbumDir;
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use indicatif::ProgressBar;
 use rayon::prelude::*;
 use serde::Serialize;
@@ -304,8 +304,6 @@ struct SlideContext {
 #[cfg(test)]
 mod tests {
     use super::generate;
-    use crate::skel::make_skeleton;
-    use mktemp::Temp;
     use std::collections::{HashSet, VecDeque};
     use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
@@ -315,6 +313,7 @@ mod tests {
     #[test]
     /// Test that the generate function creates a rendered site as we expect it
     fn test_generate() {
+        init();
         let album_path = make_test_album();
         let output_path = generate(&album_path.to_path_buf(), false).unwrap();
 

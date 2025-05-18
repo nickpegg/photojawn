@@ -50,6 +50,11 @@ enum Commands {
     },
     /// Reorganize photos in an album by date
     Reorganize {
+        /// Directory of images you want to reorganize. Only image files will be moved.
+        ///
+        /// The new image filenames will be the date and time taken, followed by the original
+        /// filename. For example:
+        /// original_filename.jpg -> YYYYMMDD_HHSS_original_filename.jpg
         #[arg()]
         path: String,
         /// Don't actually reorganize, just say what renames would happen

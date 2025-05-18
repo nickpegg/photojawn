@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context};
 use image::ImageReader;
-use std::fs::File;
+use std::ffi::OsStr;
+use std::fs::{rename, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::str::from_utf8;
@@ -17,9 +18,27 @@ pub enum OrganizeError {
 }
 
 pub fn reorganize(dir: &Path, dry_run: bool) -> anyhow::Result<()> {
-    let renames = get_renames(dir);
+    let renames = get_renames(dir)?;
+
+    if renames.len() == 0 {
+        println!("Nothing to rename");
+        return Ok(());
+    }
 
     // Either do the renames, or if dry-run print what the names would be
+    if dry_run {
+        for (src, dst) in renames {
+            println!("{} -> {}", src.display(), dst.display());
+        }
+        println!("Would have renamed the above files");
+    } else {
+        for (src, dst) in renames {
+            println!("{} -> {}", src.display(), dst.display());
+            rename(&src, &dst).with_context(|| {
+                format!("Failed to rename {} to {}", src.display(), dst.display())
+            })?;
+        }
+    }
 
     Ok(())
 }
@@ -32,7 +51,7 @@ fn get_renames(dir: &Path) -> anyhow::Result<Vec<(PathBuf, PathBuf)>> {
     for entry in dir.read_dir()? {
         let entry = entry?;
 
-        // Only bother with image files, because we return an error if we fail to read EXIF
+        // Only bother with image files, because those are the only hope for EXIF
         let is_image: bool = ImageReader::open(entry.path())?
             .with_guessed_format()?
             .format()
@@ -53,6 +72,13 @@ fn get_renames(dir: &Path) -> anyhow::Result<Vec<(PathBuf, PathBuf)>> {
                 );
                 continue;
             };
+            let orig_filename = entry
+                .path()
+                .file_name()
+                .unwrap_or(OsStr::new(""))
+                .to_string_lossy()
+                .into_owned();
+
             let ext = entry
                 .path()
                 .extension()
@@ -64,11 +90,18 @@ fn get_renames(dir: &Path) -> anyhow::Result<Vec<(PathBuf, PathBuf)>> {
                 .to_string();
 
             let new_filename_base = dt.format(format_description!(
-                "[year][month][day]_[hour][minute][second]"
+                "[year][month][day]_[hour][minute][second]_"
             ))?;
+
+            // Renaming an already-renamed file should be a no-op
+            if orig_filename.starts_with(&new_filename_base) {
+                log::info!("{orig_filename} looks like it was already renamed, skiping");
+                continue;
+            }
+
             let new_path = entry
                 .path()
-                .with_file_name(new_filename_base)
+                .with_file_name(new_filename_base + &orig_filename)
                 .with_extension(ext);
 
             renames.push((entry.path(), new_path.clone()));
@@ -84,6 +117,10 @@ fn get_renames(dir: &Path) -> anyhow::Result<Vec<(PathBuf, PathBuf)>> {
             }
         }
     }
+
+    // Sort renames by the destination
+    renames.sort_by_key(|(_, dst)| dst.clone());
+
     Ok(renames)
 }
 
@@ -110,9 +147,9 @@ fn get_exif_datetime(path: PathBuf) -> anyhow::Result<UtcDateTime> {
             let s = from_utf8(&v[0])?;
             log::debug!("Date string from file: {s}");
 
-            match OffsetDateTime::parse(&s, format_with_offset) {
+            match OffsetDateTime::parse(s, format_with_offset) {
                 Ok(v) => v.to_utc(),
-                Err(_) => PrimitiveDateTime::parse(&s, format_without_offset)?.as_utc(),
+                Err(_) => PrimitiveDateTime::parse(s, format_without_offset)?.as_utc(),
             }
         }
         // TODO: return some error
@@ -163,10 +200,25 @@ mod tests {
         assert_eq!(
             renames,
             vec![
-                (dir.join("mountains.jpg"), dir.join("19700103_133700.jpg")),
-                (dir.join("moon.jpg"), dir.join("19700102_133700.jpg")),
-                (dir.join("moon.txt"), dir.join("19700102_133700.txt")),
+                (dir.join("moon.jpg"), dir.join("19700102_133700_moon.jpg")),
+                (dir.join("moon.txt"), dir.join("19700102_133700_moon.txt")),
+                (
+                    dir.join("mountains.jpg"),
+                    dir.join("19700103_133700_mountains.jpg")
+                ),
             ]
         );
+    }
+
+    #[test]
+    /// The rename function will prepend date and time to the original filenames. If we do it a
+    /// second time, it should be a no-op instead of continuing to prepend date and time.
+    fn rerename() {
+        let tmp_album_dir = make_test_album();
+        let dir = tmp_album_dir.join("with_description");
+        reorganize(&dir, false).unwrap();
+
+        let renames = get_renames(&dir).unwrap();
+        assert_eq!(renames, Vec::new());
     }
 }
