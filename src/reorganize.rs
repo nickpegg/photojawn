@@ -1,7 +1,7 @@
-use anyhow::{Context, anyhow};
+use anyhow::{anyhow, Context};
 use image::ImageReader;
 use std::ffi::OsStr;
-use std::fs::{File, rename};
+use std::fs::{rename, File};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::str::from_utf8;
@@ -191,7 +191,7 @@ mod tests {
     }
 
     #[test]
-    fn basic_renames() {
+    fn test_basic_renames() {
         init();
         let tmp_album_dir = make_test_album();
         let dir = tmp_album_dir.join("with_description");
@@ -213,9 +213,26 @@ mod tests {
     }
 
     #[test]
+    /// get_renames() should ignore other stuff in the directory
+    fn test_other_junk() {
+        init();
+        let tmp_album_dir = make_test_album();
+
+        let renames = get_renames(&tmp_album_dir).unwrap();
+        // No mountain.jpg since it doesn't have EXIF data
+        assert_eq!(
+            renames,
+            vec![(
+                tmp_album_dir.join("moon.jpg"),
+                tmp_album_dir.join("19700101_133700_moon.jpg")
+            )]
+        );
+    }
+
+    #[test]
     /// The rename function will prepend date and time to the original filenames. If we do it a
     /// second time, it should be a no-op instead of continuing to prepend date and time.
-    fn rerename() {
+    fn test_rerename() {
         let tmp_album_dir = make_test_album();
         let dir = tmp_album_dir.join("with_description");
         reorganize(&dir, false).unwrap();
