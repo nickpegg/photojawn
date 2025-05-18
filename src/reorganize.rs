@@ -20,7 +20,7 @@ pub enum OrganizeError {
 pub fn reorganize(dir: &Path, dry_run: bool) -> anyhow::Result<()> {
     let renames = get_renames(dir)?;
 
-    if renames.len() == 0 {
+    if renames.is_empty() {
         println!("Nothing to rename");
         return Ok(());
     }
