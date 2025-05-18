@@ -98,7 +98,8 @@ fn generate_images(config: &Config, album: &AlbumDir, full: bool) -> anyhow::Res
         fs::hard_link(&img.path, &full_size_path)
             .with_context(|| format!("Error creating hard link at {}", full_size_path.display()))?;
 
-        let orig_image = ::image::open(&img.path)?;
+        let orig_image = ::image::open(&img.path)
+            .with_context(|| format!("Failed to read image {}", &img.path.display()))?;
         let thumb_path = output_path.join(&img.thumb_path);
         log::info!(
             "Resizing {} -> {}",
@@ -303,11 +304,11 @@ struct SlideContext {
 #[cfg(test)]
 mod tests {
     use super::generate;
-    use crate::skel::make_skeleton;
-    use mktemp::Temp;
     use std::collections::{HashSet, VecDeque};
     use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
+
+    use crate::test_util::{init, make_test_album};
 
     #[test]
     /// Test that the generate function creates a rendered site as we expect it
@@ -317,27 +318,6 @@ mod tests {
         let output_path = generate(&album_path.to_path_buf(), false).unwrap();
 
         check_album(output_path).unwrap();
-    }
-
-    fn init() {
-        let _ = env_logger::builder().is_test(true).try_init();
-    }
-
-    /// Copies the test album to a tempdir and returns the path to it
-    fn make_test_album() -> Temp {
-        let tmpdir = Temp::new_dir().unwrap();
-        let source_path = Path::new("resources/test_album");
-
-        log::info!("Creating test album in {}", tmpdir.display());
-        make_skeleton(&tmpdir.to_path_buf()).unwrap();
-        fs_extra::dir::copy(
-            &source_path,
-            &tmpdir,
-            &fs_extra::dir::CopyOptions::new().content_only(true),
-        )
-        .unwrap();
-
-        tmpdir
     }
 
     /// Does basic sanity checks on an output album
