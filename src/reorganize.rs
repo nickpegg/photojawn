@@ -1,7 +1,7 @@
-use anyhow::{anyhow, Context};
+use anyhow::{Context, anyhow};
 use image::ImageReader;
 use std::ffi::OsStr;
-use std::fs::{rename, File};
+use std::fs::{File, rename};
 use std::io::BufReader;
 use std::path::{Path, PathBuf};
 use std::str::from_utf8;
@@ -50,6 +50,10 @@ fn get_renames(dir: &Path) -> anyhow::Result<Vec<(PathBuf, PathBuf)>> {
     // Run through all the images and figure out new names for them
     for entry in dir.read_dir()? {
         let entry = entry?;
+
+        if !entry.path().is_file() {
+            continue;
+        }
 
         // Only bother with image files, because those are the only hope for EXIF
         let is_image: bool = ImageReader::open(entry.path())?
