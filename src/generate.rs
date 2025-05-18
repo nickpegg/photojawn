@@ -310,35 +310,15 @@ mod tests {
     use std::ffi::OsStr;
     use std::path::{Path, PathBuf};
 
+    use crate::test_util::{init, make_test_album};
+
     #[test]
     /// Test that the generate function creates a rendered site as we expect it
     fn test_generate() {
-        init();
         let album_path = make_test_album();
         let output_path = generate(&album_path.to_path_buf(), false).unwrap();
 
         check_album(output_path).unwrap();
-    }
-
-    fn init() {
-        let _ = env_logger::builder().is_test(true).try_init();
-    }
-
-    /// Copies the test album to a tempdir and returns the path to it
-    fn make_test_album() -> Temp {
-        let tmpdir = Temp::new_dir().unwrap();
-        let source_path = Path::new("resources/test_album");
-
-        log::info!("Creating test album in {}", tmpdir.display());
-        make_skeleton(&tmpdir.to_path_buf()).unwrap();
-        fs_extra::dir::copy(
-            &source_path,
-            &tmpdir,
-            &fs_extra::dir::CopyOptions::new().content_only(true),
-        )
-        .unwrap();
-
-        tmpdir
     }
 
     /// Does basic sanity checks on an output album
