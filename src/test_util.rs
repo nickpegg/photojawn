@@ -10,7 +10,7 @@ pub fn init() {
 /// cleans up the directory on drop, so make sure to persist the variable until you're done with it
 pub fn make_test_album() -> Temp {
     let tmpdir = Temp::new_dir().unwrap();
-    let source_path = Path::new("resources/test_album");
+    let source_path = Path::new("resources/test_album").canonicalize().unwrap();
 
     log::info!("Creating test album in {}", tmpdir.display());
     make_skeleton(&tmpdir.to_path_buf()).unwrap();
