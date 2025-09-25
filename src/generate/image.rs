@@ -55,17 +55,15 @@ impl Image {
     /// return "blah.thumb"
     fn slide_filename(path: &Path, ext: &str, keep_ext: bool) -> anyhow::Result<String> {
         let mut new_ext: OsString = ext.into();
-        if keep_ext {
-            if let Some(e) = path.extension() {
-                new_ext = OsString::from(
-                    ext.to_string()
-                        + "."
-                        + e.to_str().ok_or(anyhow!(
-                            "Image {} extension is not valid UTF-8",
-                            path.display()
-                        ))?,
-                )
-            }
+        if keep_ext && let Some(e) = path.extension() {
+            new_ext = OsString::from(
+                ext.to_string()
+                    + "."
+                    + e.to_str().ok_or(anyhow!(
+                        "Image {} extension is not valid UTF-8",
+                        path.display()
+                    ))?,
+            )
         }
 
         let new_path = path.with_extension(new_ext);

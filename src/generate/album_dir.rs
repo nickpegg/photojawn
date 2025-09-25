@@ -19,7 +19,7 @@ pub struct AlbumDir {
 
 impl AlbumDir {
     /// Returns an iterator over all images in the album and subalbums
-    pub fn iter_all_images(&self) -> AlbumImageIter {
+    pub fn iter_all_images(&self) -> AlbumImageIter<'_> {
         AlbumImageIter::new(self)
     }
 
@@ -79,20 +79,20 @@ impl AlbumDir {
                         }
                     }
                 }
-            } else if entry_path.is_dir() {
-                if let Some(dirname) = entry_path.file_name().and_then(|n| n.to_str()) {
-                    if dirname.starts_with("_") {
-                        // Likely a templates or static dir
-                        continue;
-                    } else if dirname == "site" {
-                        // Is a generated site dir, don't descend into it
-                        continue;
-                    } else if dirname == "slides" {
-                        continue;
-                    }
-
-                    children.push(AlbumDir::from_path(&entry_path, root)?);
+            } else if entry_path.is_dir()
+                && let Some(dirname) = entry_path.file_name().and_then(|n| n.to_str())
+            {
+                if dirname.starts_with("_") {
+                    // Likely a templates or static dir
+                    continue;
+                } else if dirname == "site" {
+                    // Is a generated site dir, don't descend into it
+                    continue;
+                } else if dirname == "slides" {
+                    continue;
                 }
+
+                children.push(AlbumDir::from_path(&entry_path, root)?);
             }
         }
 
