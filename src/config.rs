@@ -23,7 +23,7 @@ impl Config {
                 config_path.display(),
             )
         })?;
-        let cfg = serde_yml::from_slice(&content)
+        let cfg = serde_yaml_ng::from_slice(&content)
             .with_context(|| format!("Failed to parse config from {}", config_path.display()))?;
         Ok(cfg)
     }
@@ -56,11 +56,11 @@ mod test {
     fn from_yaml() {
         // Empty YAML gives full default values
         let default_cfg = Config::default();
-        let cfg: Config = serde_yml::from_str("").unwrap();
+        let cfg: Config = serde_yaml_ng::from_str("").unwrap();
         assert_eq!(cfg, default_cfg);
 
         // Default values for any unspecified fields
-        let cfg: Config = serde_yml::from_str("thumbnail_size: [1, 1]").unwrap();
+        let cfg: Config = serde_yaml_ng::from_str("thumbnail_size: [1, 1]").unwrap();
         assert_ne!(cfg, default_cfg);
         assert_eq!(cfg.thumbnail_size, (1, 1));
         assert_eq!(cfg.view_size, default_cfg.view_size);
